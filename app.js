@@ -13,24 +13,10 @@ const state={
 };
 
 const demo={
- separacoes:[
-  {lote:'LT-1025',pedido:'PED-4587',destino:'Ponte Nova',peso:'860 kg',volumes:'42',inicio:'18/09/2026 08:15',fim:'18/09/2026 09:02',status:'Finalizada',resultado:'OK',usuario_id:'joao.silva',filial_id:'CDD'},
-  {lote:'LT-1038',pedido:'PED-4621',destino:'Viçosa',peso:'620 kg',volumes:'31',inicio:'18/09/2026 10:20',fim:'',status:'Em andamento',resultado:'',usuario_id:'joao.silva',filial_id:'CDD'},
-  {lote:'LT-1054',pedido:'PED-4701',destino:'Ponte Nova',peso:'430 kg',volumes:'21',inicio:'18/09/2026 13:10',fim:'18/09/2026 14:00',status:'Finalizada',resultado:'NÃO OK',usuario_id:'joao.silva',filial_id:'CDD'}
- ],
- carregamentos:[
-  {romaneio:'ROM-783',destino:'Ponte Nova',motorista:'João Silva',placa:'OFA-4452',peso:'12.500 kg',volumes:'48',inicio:'18/09/2026 10:20',fim:'18/09/2026 12:05',resultado:'OK',status:'Finalizado',usuario_id:'joao.silva',filial_id:'CDD'},
-  {romaneio:'ROM-788',destino:'Rio Casca',motorista:'Bruno Costa',placa:'HLM-7412',peso:'6.800 kg',volumes:'29',inicio:'18/09/2026 12:35',fim:'18/09/2026 14:00',resultado:'NÃO OK',status:'Finalizado',usuario_id:'joao.silva',filial_id:'CDD'}
- ],
- atividades:[
-  {hora:'18/09/2026 08:15',tipo:'Separação',descricao_original:'Início da separação • LT-1025 • Ponte Nova',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'},
-  {hora:'18/09/2026 09:02',tipo:'Separação',descricao_original:'Separação finalizada • LT-1025',status:'Finalizada',usuario_id:'joao.silva',filial_id:'CDD'},
-  {hora:'18/09/2026 12:15',tipo:'Conferência',descricao_original:'Conferência • PED-4612 • 3 volumes divergentes',status:'NÃO OK',usuario_id:'joao.silva',filial_id:'CDD'}
- ],
- conferencias:[
-  {operacao:'Separação',referencia:'PED-4587',hora:'18/09/2026 09:10',resultado:'OK',ocorrencia:'—',quantidade_divergente:'—',observacao:'Carga conforme',usuario_id:'joao.silva',filial_id:'CDD'},
-  {operacao:'Conferência',referencia:'PED-4612',hora:'18/09/2026 12:15',resultado:'NÃO OK',ocorrencia:'3 volumes',quantidade_divergente:'3',observacao:'Volumes faltantes',usuario_id:'joao.silva',filial_id:'CDD'}
- ]
+ separacoes:[],
+ carregamentos:[],
+ atividades:[],
+ conferencias:[]
 };
 
 function clone(o){return JSON.parse(JSON.stringify(o));}
@@ -38,7 +24,7 @@ function loadData(){
  try{
   const x=JSON.parse(localStorage.getItem(STORAGE_DATA)||'null');
   if(x&&typeof x==='object'){
-   return {separacoes:Array.isArray(x.separacoes)?x.separacoes:clone(demo.separacoes),carregamentos:Array.isArray(x.carregamentos)?x.carregamentos:clone(demo.carregamentos),atividades:Array.isArray(x.atividades)?x.atividades:clone(demo.atividades),conferencias:Array.isArray(x.conferencias)?x.conferencias:clone(demo.conferencias)};
+   return {separacoes:Array.isArray(x.separacoes)?x.separacoes:[],carregamentos:Array.isArray(x.carregamentos)?x.carregamentos:[],atividades:Array.isArray(x.atividades)?x.atividades:[],conferencias:Array.isArray(x.conferencias)?x.conferencias:[]};
   }
  }catch(e){}
  const d=clone(demo);try{localStorage.setItem(STORAGE_DATA,JSON.stringify(d));}catch(e){}return d;
@@ -172,18 +158,15 @@ function confPage(){
 }
 function home(){
  const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias'),a=rows('atividades');
- const ok=f.filter(function(x){return norm(x.resultado)==='ok';}).length+c.filter(function(x){return norm(x.resultado)==='ok';}).length;
- const bad=f.filter(function(x){return /não ok|nao ok/i.test(x.resultado||'');}).length+c.filter(function(x){return /não ok|nao ok/i.test(x.resultado||'');}).length;
- const total=ok+bad,rate=total?Math.round(ok/total*100):0;
- const recent=a.slice(-6).reverse();
- return '<div class="hero"><div><div class="eyebrow">Painel operacional • '+esc(state.user.cd||'CDD')+'</div><h1>Olá, '+esc(state.user.name.split(' ')[0])+' 👋</h1><p>Acompanhe suas operações, resultados e atividades em um só lugar.</p></div><div class="hero-actions"><button class="btn secondary" onclick="refreshDashboard()">↻ Atualizar</button></div></div>'+
- '<div class="operational-strip"><div><span>STATUS DA SESSÃO</span><b class="oktext">● Online</b></div><div><span>CONFORMIDADE</span><b>'+rate+'%</b></div><div><span>OPERAÇÕES</span><b>'+(s.length+c.length)+'</b></div><div><span>OCORRÊNCIAS</span><b class="'+(bad?'badtext':'')+'">'+bad+'</b></div></div>'+
- '<div class="cards"><div class="stat blue clickable" onclick="goPage(\'separacoes\')"><div class="stat-top"><span>SEPARAÇÕES</span><span class="stat-icon">▣</span></div><strong>'+s.length+'</strong><small>Ver registros →</small></div>'+
- '<div class="stat green clickable" onclick="goPage(\'carregamentos\')"><div class="stat-top"><span>CARREGAMENTOS</span><span class="stat-icon">▰</span></div><strong>'+c.length+'</strong><small>Ver registros →</small></div>'+
- '<div class="stat purple clickable" onclick="goPage(\'conferencias\')"><div class="stat-top"><span>CONFERÊNCIAS</span><span class="stat-icon">✓</span></div><strong>'+f.length+'</strong><small>Ver resultados →</small></div>'+
- '<div class="stat dark clickable" onclick="goPage(\'atividades\')"><div class="stat-top"><span>ATIVIDADES</span><span class="stat-icon">☷</span></div><strong>'+a.length+'</strong><small>Ver histórico →</small></div></div>'+
- '<div class="grid2"><div class="panel"><div class="panel-title"><div><h3>📋 Atividades recentes</h3><div class="sub">Últimos registros vinculados ao seu acesso</div></div><button class="btn secondary" onclick="goPage(\'atividades\')">Ver tudo</button></div><div class="timeline">'+(recent.length?recent.map(function(e){return '<div class="event"><span class="dot"></span><div><b>'+dt(e.hora)+' • '+esc(e.tipo)+'</b><small>'+esc(e.descricao_original||'')+'</small></div>'+badge(e.status)+'</div>';}).join(''):'<div class="empty">Nenhuma atividade recente.</div>')+'</div></div>'+
- '<div class="panel"><div class="panel-title"><div><h3>📊 Resumo operacional</h3><div class="sub">Indicadores da sua sessão</div></div></div><div class="bar-row"><label>Conformidade</label><div class="bar"><div class="fill green" style="width:'+rate+'%"></div></div><strong>'+rate+'%</strong></div><div class="bar-row"><label>Operações OK</label><div class="bar"><div class="fill" style="width:'+(total?Math.round(ok/total*100):0)+'%"></div></div><strong>'+ok+'</strong></div><div class="bar-row"><label>Ocorrências</label><div class="bar"><div class="fill red" style="width:'+(total?Math.min(100,Math.round(bad/Math.max(total,1)*100)):0)+'%"></div></div><strong>'+bad+'</strong></div><div class="performance-note"><span>Atualização:</span><b>agora</b></div></div></div>';
+ const total=s.length+c.length+f.length+a.length;
+ return '<div class="hero"><div><div class="eyebrow">Portal de consulta • '+esc(state.user.cd||'CDD')+'</div><h1>Olá, '+esc(state.user.name.split(' ')[0])+' 👋</h1><p>Seu portal está preparado e aguardando as informações do SIGA.</p></div><div class="hero-actions"><button class="btn secondary" onclick="refreshDashboard()">↻ Atualizar</button></div></div>'+
+ '<div class="operational-strip"><div><span>STATUS DA CONEXÃO</span><b class="pending">● Aguardando dados</b></div><div><span>REGISTROS RECEBIDOS</span><b>'+total+'</b></div><div><span>USUÁRIO</span><b>'+esc(state.user.id)+'</b></div><div><span>FILIAL / CD</span><b>'+esc(state.user.cd||'CDD')+'</b></div></div>'+
+ '<div class="cards"><div class="stat blue clickable" onclick="goPage(\\'separacoes\\')"><div class="stat-top"><span>MINHAS SEPARAÇÕES</span><span class="stat-icon">▣</span></div><strong>'+s.length+'</strong><small>Consultar quando recebido →</small></div>'+
+ '<div class="stat green clickable" onclick="goPage(\\'carregamentos\\')"><div class="stat-top"><span>MEUS CARREGAMENTOS</span><span class="stat-icon">▰</span></div><strong>'+c.length+'</strong><small>Consultar quando recebido →</small></div>'+
+ '<div class="stat purple clickable" onclick="goPage(\\'conferencias\\')"><div class="stat-top"><span>MINHAS CONFERÊNCIAS</span><span class="stat-icon">✓</span></div><strong>'+f.length+'</strong><small>Consultar quando recebido →</small></div>'+
+ '<div class="stat dark clickable" onclick="goPage(\\'atividades\\')"><div class="stat-top"><span>MINHAS ATIVIDADES</span><span class="stat-icon">☷</span></div><strong>'+a.length+'</strong><small>Consultar quando recebido →</small></div></div>'+
+ '<div class="grid2"><div class="panel"><div class="panel-title"><div><h3>🔄 Aguardando informações do SIGA</h3><div class="sub">Os dados aparecerão automaticamente neste portal após a integração da fonte oficial.</div></div></div><div class="empty">Nenhuma informação recebida ainda.</div></div>'+
+ '<div class="panel"><div class="panel-title"><div><h3>👤 Dados do acesso</h3><div class="sub">As informações recebidas serão filtradas pelo usuário conectado.</div></div></div><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.id)+' • '+esc(state.user.role)+' • Filial '+esc(state.user.cd||'CDD')+'</small></div></div></div></div>';
 }
 function refreshDashboard(){render();toast('Painel atualizado.');}
 function goPage(p){if(p==='usuarios'&&!isAdmin()){toast('Acesso não permitido.');return;}if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='admin'&&p!=='usuarios'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();}
