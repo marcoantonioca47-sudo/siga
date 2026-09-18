@@ -279,3 +279,8 @@ main{padding-top:30px}
 }
 .user-row b{color:#fff!important}
 .user-row small{color:#a8bdca!important}
+
+
+/* ===== PERFORMANCE: REDUZIR TRAVAMENTOS ===== */
+.stat,.panel,.operational-strip,.loginbox{animation:none!important}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
