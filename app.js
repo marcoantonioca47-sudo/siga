@@ -918,42 +918,81 @@ function relatoriosPage(){
 })();
 
 
-/* ===== LOGIN FINAL CORRIGIDO ===== */
+/* ===== LOGIN FINAL CORRIGIDO V2 ===== */
 (function(){
- window.login=function(){
-  const id=(document.querySelector('#u')?.value||'').trim().toLowerCase();
-  const pw=document.querySelector('#pw')?.value||'';
-  const cd=document.querySelector('#fil')?.value||'CDD';
-  const msg=document.querySelector('#loginmsg');
-  if(!id||!pw){if(msg)msg.textContent='Informe usuário e senha.';return;}
-  let u;if(id==='marco'||id==='01022005'){u={id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:cd,permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}};}else{u=accountList().find(x=>{const keys=[x.id,x.usuario,x.username,x.login,x.name];return keys.some(k=>String(k||'').toLowerCase()===id);});}
-  if(!u||String(u.password??'')!==pw){if(msg)msg.textContent='Usuário ou senha inválidos.';return;}
-  state.user={id:u.id,usuario:u.id,username:u.id,name:u.name||u.nome||id,role:u.role||'Operador',cd:u.cd||cd,filial_id:u.filial_id||u.cd||cd,avatar:(u.name||u.nome||'US').split(/\\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()};
-  state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,admin:false,...(u.permissions||{})};
-  if(/autor|administrador/i.test(String(state.user.role||'')))state.permissions={separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true,...state.permissions};
-  localStorage.setItem(STORAGE_USER,JSON.stringify(state.user));
-  localStorage.setItem('siga30_portal_permissions_v2',JSON.stringify(state.permissions));
-  seedNotifications();
-  state.page='home';
-  if(msg)msg.textContent='';
-  render();
-  refreshData(true);
- };
- window.restoreSession=function(){
-  try{
-   const saved=JSON.parse(localStorage.getItem(STORAGE_USER)||'null');
-   if(!saved?.id)return false;
-   const u=accountList().find(x=>String(x.id||'').toLowerCase()===String(saved.id).toLowerCase());
-   if(!u)return false;
-   state.user={id:u.id,usuario:u.id,username:u.id,name:u.name||saved.name,role:u.role||saved.role||'Operador',cd:u.cd||saved.cd||'CDD',filial_id:u.filial_id||u.cd||saved.cd||'CDD',avatar:(u.name||saved.name||'US').split(/\\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()};
-   state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,admin:false,...(u.permissions||{})};
-   if(/autor|administrador/i.test(String(state.user.role||'')))state.permissions={separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true,...state.permissions};
-   localStorage.setItem(STORAGE_USER,JSON.stringify(state.user));
-   localStorage.setItem('siga30_portal_permissions_v2',JSON.stringify(state.permissions));
-   seedNotifications(); state.page='home'; render(); return true;
-  }catch(e){return false;}
- };
-})();
+  window.login=function(){
+    const msg=document.querySelector('#loginmsg');
+    try{
+      const id=(document.querySelector('#u')?.value||'').trim().toLowerCase();
+      const pw=document.querySelector('#pw')?.value||'';
+      const cd=document.querySelector('#fil')?.value||'CDD';
+      if(!id||!pw){if(msg)msg.textContent='Informe usuário e senha.';return false;}
+
+      let u=null;
+      if(id==='marco'||id==='01022005'){
+        u={id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd,permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}};
+      }else{
+        const list=typeof accountList==='function'?accountList():[];
+        u=list.find(x=>[x?.id,x?.usuario,x?.username,x?.login,x?.name].some(k=>String(k||'').trim().toLowerCase()===id));
+      }
+
+      if(!u||String(u.password??'')!==pw){
+        if(msg)msg.textContent='Usuário ou senha inválidos.';
+        return false;
+      }
+
+      state.user={
+        id:u.id||id,usuario:u.usuario||u.id||id,username:u.username||u.id||id,
+        name:u.name||u.nome||id,role:u.role||'Operador',cd:u.cd||cd,
+        filial_id:u.filial_id||u.cd||cd,
+        avatar:(u.name||u.nome||'US').split(/\\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase()
+      };
+      state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,admin:false,...(u.permissions||{})};
+      if(/autor|administrador/i.test(String(state.user.role||''))){
+        state.permissions={separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true,...state.permissions};
+      }
+
+      localStorage.setItem(STORAGE_USER,JSON.stringify(state.user));
+      localStorage.setItem('siga30_portal_permissions_v2',JSON.stringify(state.permissions));
+      if(typeof seedNotifications==='function')seedNotifications();
+      state.page='home';
+      if(msg)msg.textContent='';
+      render();
+      if(typeof refreshData==='function')refreshData(true);
+      return false;
+    }catch(err){
+      console.error('SIGA login:',err);
+      if(msg)msg.textContent='Erro ao entrar no sistema. Recarregue a página e tente novamente.';
+      return false;
+    }
+  };
+
+  window.restoreSession=function(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(STORAGE_USER)||'null');
+      if(!saved?.id)return false;
+      let u=null;
+      if(String(saved.id).toLowerCase()==='01022005'){
+        u={id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:saved.cd||'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}};
+      }else{
+        const list=typeof accountList==='function'?accountList():[];
+        u=list.find(x=>String(x?.id||'').toLowerCase()===String(saved.id).toLowerCase());
+      }
+      if(!u)return false;
+      state.user={...saved,id:u.id,name:u.name||saved.name,role:u.role||saved.role||'Operador',cd:u.cd||saved.cd||'CDD',filial_id:u.filial_id||u.cd||saved.filial_id||saved.cd||'CDD'};
+      state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,admin:false,...(u.permissions||{})};
+      if(/autor|administrador/i.test(String(state.user.role||'')))state.permissions={separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true,...state.permissions};
+      localStorage.setItem(STORAGE_USER,JSON.stringify(state.user));
+      localStorage.setItem('siga30_portal_permissions_v2',JSON.stringify(state.permissions));
+      state.page='home';
+      render();
+      return true;
+    }catch(err){
+      console.error('SIGA restoreSession:',err);
+      return false;
+    }
+  };
+})(); 
 
 /* ===== REGISTRO OBRIGATÓRIO DE INÍCIO E FIM ===== */
 (function(){
