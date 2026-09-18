@@ -255,17 +255,30 @@ const NOTIFY_STORE='siga30_notifications_v1';
 function normalizeAccount(x){if(!x)return null;if(Array.isArray(x)){const d=x[3]||'';return {id:(x[1]||'').toLowerCase(),name:x[1]||'',password:'',role:x[2]||'Operador',cd:'CDD',permissions:{separacoes:/separa/i.test(d)||/todas/i.test(d),carregamentos:/carreg/i.test(d)||/todas/i.test(d),atividades:/ativ/i.test(d)||/todas/i.test(d),desempenho:/desempenho/i.test(d)||/todas/i.test(d),conferencias:/confer/i.test(d)||/todas/i.test(d),admin:/administrador|autor/i.test(x[2]||'')}};}return {...x,permissions:{...x.permissions}};}
 function accountList(){
  const adminPerm={separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true};
+ const defaults=[
+  {id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:adminPerm},
+  {id:'maximo',name:'Maximo',password:'1234',role:'Administrador',cd:'CDD',permissions:adminPerm},
+  {id:'joao.silva',name:'João Silva',password:'1234',role:'Operador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}}
+ ];
  try{
   const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');
-  if(Array.isArray(raw)&&raw.length){
-   const users=raw.map(normalizeAccount);
-   const max=users.find(u=>/^(maximo|máximo)$/i.test(String(u.id||u.usuario||u.username||u.login||''))||/^(maximo|máximo)$/i.test(String(u.name||u.nome||'')));
-   if(max){max.role='Administrador';max.permissions={...(max.permissions||{}),...adminPerm};max.admin=true;}
-   localStorage.setItem(ACCOUNT_STORE,JSON.stringify(users));
-   return users;
-  }
- }catch(e){}
- return [{id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:adminPerm},{id:'maximo',name:'Maximo',password:'1234',role:'Administrador',cd:'CDD',permissions:adminPerm},{id:'joao.silva',name:'João Silva',password:'1234',role:'Operador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}}];
+  let users=Array.isArray(raw)?raw.map(normalizeAccount).filter(Boolean):[];
+  defaults.forEach(def=>{
+   const key=String(def.id).toLowerCase();
+   const found=users.find(u=>String(u.id||u.usuario||u.username||u.login||'').toLowerCase()===key);
+   if(!found) users.push({...def,permissions:{...def.permissions}});
+   else{
+    if(key==='01022005'){
+      found.id='01022005'; found.name='Marco'; found.password='01022005'; found.role='Autor / Administrador'; found.cd=found.cd||'CDD'; found.permissions={...adminPerm,...(found.permissions||{})};
+    }
+    if(key==='maximo'){
+      found.id='maximo'; found.password='1234'; found.role='Administrador'; found.permissions={...adminPerm,...(found.permissions||{})};
+    }
+   }
+  });
+  localStorage.setItem(ACCOUNT_STORE,JSON.stringify(users));
+  return users;
+ }catch(e){ return defaults; }
 }
 function saveAccounts(a){localStorage.setItem(ACCOUNT_STORE,JSON.stringify(a));}
 function getNotifications(){try{const n=JSON.parse(localStorage.getItem(NOTIFY_STORE)||'null');return Array.isArray(n)?n:[];}catch(e){return [];}}
