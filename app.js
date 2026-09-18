@@ -706,3 +706,88 @@ document.addEventListener('change',e=>{
  document.addEventListener('change',e=>{if(e.target.id==='myStatusFilter'||e.target.id==='myPeriodFilter')apply();});
  window.applyMyFilters=apply;window.clearMyFilters=clear;
 })();
+
+/* ===== FILTRO DE MES - RELATORIOS E DESEMPENHO ===== */
+function reportMonthKey(v){
+  const x=String(v??'').trim().toLowerCase();
+  if(!x||x==='all'||x==='todos')return'all';
+  const n=Number(x);
+  return Number.isInteger(n)&&n>=0&&n<=11?String(n):'all';
+}
+function reportRecordDate(o){
+  const fields=['data','date','data_hora','dataHora','created_at','createdAt','timestamp','inicio_data','fim_data','inicio','fim','hora'];
+  const vals=[];
+  fields.forEach(k=>{if(o&&o[k]!=null)vals.push(String(o[k]).trim());});
+  Object.values(o||{}).forEach(v=>{if(typeof v==='string')vals.push(v.trim());});
+  for(const raw of vals){
+    if(/^\d{4}-\d{2}-\d{2}/.test(raw)){
+      const d=new Date(raw);if(!Number.isNaN(d.getTime()))return d;
+    }
+    let m=raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));
+  }
+  for(const raw of vals){
+    const m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if(m){const d=new Date();d.setHours(+m[1],+m[2],+(m[3]||0),0);return d;}
+  }
+  return null;
+}
+function reportMonthMatch(o,month){
+  const m=reportMonthKey(month);
+  if(m==='all')return true;
+  const d=reportRecordDate(o);
+  return !!d&&d.getFullYear()===new Date().getFullYear()&&d.getMonth()===Number(m);
+}
+function reportMonthOptions(selected='all'){
+  const names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return '<option value="all" '+(selected==='all'?'selected':'')+'>Todos os meses</option>'+names.map((n,i)=>'<option value="'+i+'" '+(String(selected)===String(i)?'selected':'')+'>'+n+' • '+new Date().getFullYear()+'</option>').join('');
+}
+function selectedReportMonth(){
+  return document.querySelector('#reportMonthFilter')?.value||'all';
+}
+function filteredReportData(){
+  const m=selectedReportMonth();
+  return {
+    s:userSeps().filter(x=>reportMonthMatch(x,m)),
+    c:userCars().filter(x=>reportMonthMatch(x,m)),
+    f:userConfs().filter(x=>reportMonthMatch(x,m)),
+    a:userActs().filter(x=>reportMonthMatch(x,m))
+  };
+}
+function desempenhoPage(){
+  const m=selectedReportMonth(),d=filteredReportData(),s=d.s,c=d.c,f=d.f,a=d.a;
+  const t={s:s.length,c:c.length,f:f.length,a:a.length,fok:f.filter(x=>norm(x.resultado)==='ok').length,fbad:f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,cok:c.filter(x=>norm(x.resultado)==='ok').length,cbad:c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length};
+  const max=Math.max(t.s,t.c,t.f,t.a,1);
+  return '<div class="page-title"><div class="panel-title"><div><h1>Meu Desempenho</h1><p>Resumo calculado a partir das operações vinculadas ao usuário.</p></div></div></div>'+
+  '<div class="panel month-filter-panel"><div class="filters"><label class="month-filter-label">Mês de referência<select id="reportMonthFilter" onchange="renderMonthReport()">'+reportMonthOptions(m)+'</select></label></div></div>'+
+  '<div class="cards"><div class="stat blue"><div class="stat-top">SEPARAÇÕES</div><strong>'+t.s+'</strong><small>Registros no mês</small></div><div class="stat green"><div class="stat-top">CARREGAMENTOS</div><strong>'+t.c+'</strong><small>Registros no mês</small></div><div class="stat purple"><div class="stat-top">CONFERÊNCIAS</div><strong>'+t.f+'</strong><small>Registros no mês</small></div><div class="stat dark"><div class="stat-top">ATIVIDADES</div><strong>'+t.a+'</strong><small>Registros no mês</small></div></div>'+
+  '<div class="grid2"><div class="panel"><h3>Desempenho</h3><div class="sub">Indicadores do mês selecionado</div>'+bar('Separações',t.s,max,'')+bar('Carregamentos',t.c,max,'green')+bar('Conferências',t.f,max,'purple')+bar('Atividades',t.a,max,'dark')+'</div><div class="panel"><h3>Resultados</h3><div class="sub">Conferências e carregamentos do mês</div>'+bar('Conferências OK',t.fok,Math.max(t.f,1),'green')+bar('Conferências NÃO OK',t.fbad,Math.max(t.f,1),'red')+bar('Carregamentos OK',t.cok,Math.max(t.c,1),'green')+bar('Carregamentos NÃO OK',t.cbad,Math.max(t.c,1),'red')+'</div></div>';
+}
+function relatoriosPage(){
+  const m=selectedReportMonth(),d=filteredReportData(),s=d.s,c=d.c,f=d.f,a=d.a;
+  const okF=f.filter(x=>norm(x.resultado)==='ok').length,badF=f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,okC=c.filter(x=>norm(x.resultado)==='ok').length,badC=c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,total=s.length+c.length+f.length,results=okF+badF+okC+badC,rate=results?Math.round((okF+okC)/results*100):0;
+  return '<div class="page-title"><div class="panel-title"><div><h1>Relatórios Operacionais</h1><p>Resumo dos registros disponíveis para este usuário.</p></div><div class="hero-actions"><button class="btn secondary" onclick="exportReport()">⇩ Exportar relatório</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div></div>'+
+  '<div class="panel month-filter-panel"><div class="filters"><label class="month-filter-label">Mês de referência<select id="reportMonthFilter" onchange="renderMonthReport()">'+reportMonthOptions(m)+'</select></label></div></div>'+
+  '<div class="report-kpis"><div class="perf-kpi"><span>Separações</span><strong>'+s.length+'</strong><small>Registros no mês</small></div><div class="perf-kpi"><span>Carregamentos</span><strong>'+c.length+'</strong><small>Registros no mês</small></div><div class="perf-kpi"><span>Conferências</span><strong>'+f.length+'</strong><small>Registros no mês</small></div><div class="perf-kpi"><span>Conformidade registrada</span><strong>'+rate+'%</strong><small>'+results+' resultados OK/NÃO OK</small></div></div>'+
+  '<div class="grid2"><div class="panel"><h3>📦 Produção operacional</h3><div class="sub">Quantidade de registros no mês</div>'+bar('Separações',s.length,Math.max(total,1),'')+bar('Carregamentos',c.length,Math.max(total,1),'green')+bar('Conferências',f.length,Math.max(total,1),'purple')+bar('Atividades',a.length,Math.max(a.length,s.length,c.length,f.length,1),'dark')+'</div><div class="panel"><h3>✓ Qualidade e ocorrências</h3><div class="sub">Resultados registrados no mês</div>'+bar('Conferências OK',okF,Math.max(f.length,1),'green')+bar('Conferências NÃO OK',badF,Math.max(f.length,1),'red')+bar('Carregamentos OK',okC,Math.max(c.length,1),'green')+bar('Carregamentos NÃO OK',badC,Math.max(c.length,1),'red')+'</div></div>'+
+  '<div class="panel report-table"><div class="panel-title"><div><h3>Resumo por operação</h3><div class="sub">Valores calculados para o mês selecionado.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Operação</th><th>Total</th><th>OK</th><th>NÃO OK</th><th>Sem resultado</th></tr></thead><tbody><tr><td>Separações</td><td>'+s.length+'</td><td>'+s.filter(x=>norm(x.resultado)==='ok').length+'</td><td>'+s.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length+'</td><td>'+s.filter(x=>!x.resultado).length+'</td></tr><tr><td>Carregamentos</td><td>'+c.length+'</td><td>'+okC+'</td><td>'+badC+'</td><td>'+c.filter(x=>!x.resultado).length+'</td></tr><tr><td>Conferências</td><td>'+f.length+'</td><td>'+okF+'</td><td>'+badF+'</td><td>'+f.filter(x=>!x.resultado).length+'</td></tr><tr><td>Atividades</td><td>'+a.length+'</td><td>—</td><td>—</td><td>'+a.filter(x=>!x.status).length+'</td></tr></tbody></table></div></div>';
+}
+function renderMonthReport(){
+  const value=document.querySelector('#reportMonthFilter')?.value||'all';
+  try{localStorage.setItem('siga30_report_month_v1',value);}catch(e){}
+  render();
+}
+(function restoreReportMonthFilter(){
+  const oldRender=render;
+  render=function(){
+    oldRender();
+    const p=document.querySelector('#reportMonthFilter');
+    if(p){
+      const saved=localStorage.getItem('siga30_report_month_v1')||'all';
+      p.value=saved;
+      if(typeof desempenhoPage==='function'&&typeof relatoriosPage==='function'){
+        /* selection is applied on the next render */
+      }
+    }
+  };
+})();
