@@ -136,3 +136,65 @@ header .header-actions{display:flex;align-items:center;gap:7px;position:relative
 
 /* ===== DATA + HORA NA MESMA COLUNA ===== */
 .datetime-cell{white-space:nowrap;vertical-align:middle;line-height:1.15;min-width:82px}.datetime-cell span{display:block;font-weight:800;font-size:9px;letter-spacing:.1px}.datetime-cell small{display:block;margin-top:3px;font-size:8px;font-weight:700;color:#8fa7b7;font-variant-numeric:tabular-nums}.datetime-cell small:before{content:'🕐 ';font-size:7px;opacity:.8}@media(max-width:700px){.datetime-cell{min-width:78px}.datetime-cell span{font-size:8px}.datetime-cell small{font-size:7.5px}}
+
+
+/* ===== SIGA 3.0 • REFINAMENTO VISUAL 2026 ===== */
+:root{
+ --radius-lg:18px;--radius-md:13px;
+ --surface:rgba(7,29,47,.78);--surface-2:rgba(255,255,255,.055);
+}
+html{scroll-behavior:smooth}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:rgba(47,140,255,.35);color:#fff}
+button,input,select{transition:border-color .18s,box-shadow .18s,transform .18s,background .18s}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(91,171,255,.75);outline-offset:2px}
+aside{padding-top:18px}
+.brand{min-height:58px}
+.me{margin-top:4px;padding:15px 8px;background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.08);border-radius:14px}
+nav{margin-top:10px}
+nav button{min-height:48px}
+.area{background-color:#061522}
+header{box-shadow:0 8px 28px rgba(0,0,0,.10)}
+main{padding-top:30px}
+.hero{padding:2px 2px 4px}
+.hero h1{font-weight:800}
+.operational-strip{box-shadow:0 14px 34px rgba(0,0,0,.16)}
+.operational-strip .oktext{color:#72e7b4}
+.panel{border-radius:var(--radius-lg);box-shadow:0 18px 45px rgba(0,0,0,.18)}
+.panel-title .btn{flex:0 0 auto}
+.cards{gap:14px}
+.stat{border-radius:var(--radius-lg);min-height:132px}
+.stat strong{font-variant-numeric:tabular-nums}
+.stat-icon{transition:transform .2s}
+.stat.clickable:hover .stat-icon{transform:scale(1.08) rotate(-3deg)}
+.table-wrap{border-radius:13px;background:rgba(0,0,0,.08)}
+.table thead{position:sticky;top:0;z-index:2}
+.table th{font-weight:800;letter-spacing:.25px}
+.table tbody tr{transition:background .15s,transform .15s}
+.filters{padding-bottom:2px}
+.filters input,.filters select{min-height:40px}
+.empty{min-height:120px;display:table-cell;vertical-align:middle}
+.toast{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.loginbox{animation:sigaEnter .45s ease-out both}
+.stat,.panel,.operational-strip{animation:sigaEnter .35s ease-out both}
+.stat:nth-child(2){animation-delay:.04s}.stat:nth-child(3){animation-delay:.08s}.stat:nth-child(4){animation-delay:.12s}
+@keyframes sigaEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:980px){
+ aside{padding:14px;z-index:100}
+ aside.open{box-shadow:24px 0 70px rgba(0,0,0,.55)}
+ header{box-shadow:0 7px 24px rgba(0,0,0,.16)}
+ main{padding-top:22px}
+}
+@media(max-width:560px){
+ .brand{padding-bottom:13px}
+ .me{padding:12px 8px}
+ nav{gap:5px}
+ .hero h1{font-size:23px}
+ .hero p{font-size:10px;line-height:1.5}
+ .operational-strip{padding:10px;border-radius:14px}
+ .operational-strip b{font-size:9px}
+ .stat{min-height:118px;border-radius:15px}
+ .stat strong{font-size:28px}
+ .panel-title{align-items:center}
+ .panel-title .btn{padding:8px 10px}
+}
