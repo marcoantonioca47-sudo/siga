@@ -135,8 +135,27 @@ function renderNav(){const el=document.querySelector('#nav');if(!el)return;el.in
 function updateUserUI(){if(!state.user)return;const n=state.user.name||state.user.nome||'Usuário';const initials=(state.user.avatar||n.split(/\s+/).map(x=>x[0]).join('').slice(0,2)).toUpperCase();['sideInitials','headerInitials'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=initials;});const sn=document.getElementById('sideName');if(sn)sn.textContent=n;const sr=document.getElementById('sideRole');if(sr)sr.textContent=state.user.role||'Operador';const hw=document.getElementById('headerWho');if(hw)hw.textContent=`${state.user.cd||'CDD'} · ${n}`;}
 function render(){if(!state.user)return;document.querySelector('#login')?.classList.add('hide');document.querySelector('#app')?.classList.remove('hide');updateUserUI();renderNav();const pages={home,separacoes:separacoesPage,carregamentos:carregamentosPage,conferencias:conferenciasPage,atividades:atividadesPage,desempenho:desempenhoPage,perfil:perfilPage,admin:adminPage,filiais:branchPage};const main=document.querySelector('#main');if(main)main.innerHTML=(pages[state.page]||home)();closeMenu();}
 function home(){const t=totals();const acts=userActs();return `<div class="hero"><div><div class="eyebrow">Painel do usuário</div><h1>Olá, ${esc((state.user.name||'Usuário').split(' ')[0])}!</h1><p>Aqui está o resumo das suas atividades de hoje.</p></div><button class="btn secondary" onclick="refreshData(true)">↻ Atualizar agora</button></div><div class="cards"><div class="stat blue"><div class="stat-top"><span>SEPARAÇÕES</span><span class="stat-icon">▣</span></div><strong>${t.s}</strong><small>Hoje</small></div><div class="stat green"><div class="stat-top"><span>CARREGAMENTOS</span><span class="stat-icon">▰</span></div><strong>${t.c}</strong><small>Hoje</small></div><div class="stat purple"><div class="stat-top"><span>CONFERÊNCIAS</span><span class="stat-icon">✓</span></div><strong>${t.f}</strong><small>Hoje</small></div><div class="stat dark"><div class="stat-top"><span>ATIVIDADES</span><span class="stat-icon">☷</span></div><strong>${t.a}</strong><small>Hoje</small></div></div><div class="grid2"><div class="panel"><div class="panel-title"><div><h3>📋 Atividades feitas hoje</h3><div class="sub">Registro individual do usuário</div></div><button class="btn secondary" onclick="state.page='atividades';render()">Ver todas →</button></div><div class="timeline">${acts.length?acts.map(e=>`<div class="event"><span class="dot"></span><div><b>${esc(e.hora||e.inicio||'')} • ${esc(e.tipo||'Atividade')}</b><small>${esc(e.descricao_original||e.descricao||e.atividade||e.texto||'')}</small></div>${badge(e.status||'PENDENTE',resultClass(e.status))}</div>`).join(''):'<div class="empty">Nenhuma atividade registrada.</div>'}</div></div><div><div class="panel"><h3>📊 Atividades de hoje</h3><div class="sub">Gráfico horizontal</div>${bar('Separações',t.s,Math.max(t.s,t.c,t.f,t.a,1),'')}${bar('Carregamentos',t.c,Math.max(t.s,t.c,t.f,t.a,1),'green')}${bar('Conferências',t.f,Math.max(t.s,t.c,t.f,t.a,1),'purple')}${bar('Atividades',t.a,Math.max(t.s,t.c,t.f,t.a,1),'dark')}</div><div class="panel"><h3>📈 Resultados das operações</h3><div class="sub">OK e NÃO OK</div>${bar('Conferências OK',t.fok,Math.max(t.f,1),'green')}${bar('Conferências NÃO OK',t.fbad,Math.max(t.f,1),'red')}${bar('Carregamentos OK',t.cok,Math.max(t.c,1),'green')}${bar('Carregamentos NÃO OK',t.cbad,Math.max(t.c,1),'red')}</div></div></div><div class="sub" style="margin-top:10px">Última atualização: ${esc(state.lastSync?new Date(state.lastSync).toLocaleTimeString('pt-BR'):'agora')}</div>`;}
-function separacoesPage(){const d=userSeps();return tablePage('Minhas Separações','Apenas separações vinculadas ao seu usuário.',['Lote','Pedido','Destino','Peso','Volumes','Início','Fim','Status',''],d.map(r=>`<tr><td>${esc(r.lote||r.numero_lote)}</td><td>${esc(r.pedido||r.numero_pedido)}</td><td>${esc(r.destino||r.rota)}</td><td>${esc(r.peso||r.peso_total_kg)}</td><td>${esc(r.volumes||r.volume_total)}</td><td>${esc(r.inicio)}</td><td>${esc(r.fim)}</td><td>${badge(r.status||'PENDENTE',resultClass(r.status||r.resultado))}</td><td><button class="btn secondary" onclick="details('${esc(r.lote||'')}')">Ver</button></td></tr>`).join(''));}
-function carregamentosPage(){const d=userCars();return tablePage('Meus Carregamentos','Apenas carregamentos vinculados ao seu usuário.',['Romaneio','Rota/Destino','Motorista','Placa','Peso','Volumes','Início','Fim','Resultado'],d.map(r=>`<tr><td>${esc(r.romaneio||r.numero_romaneio)}</td><td>${esc(r.destino||r.rota)}</td><td>${esc(r.motorista)}</td><td>${esc(r.placa||r.veiculo)}</td><td>${esc(r.peso||r.peso_total_kg)}</td><td>${esc(r.volumes||r.volume_total)}</td><td>${esc(r.inicio)}</td><td>${esc(r.fim)}</td><td>${badge(r.resultado||r.status||'PENDENTE',resultClass(r.resultado||r.status))}</td></tr>`).join(''));}
+function separacoesPage(){
+ const d=userSeps();
+ const rows=d.map((r,i)=>`<tr data-search="${esc([r.lote||r.numero_lote,r.pedido||r.numero_pedido,r.destino||r.rota,r.peso||r.peso_total_kg,r.volumes||r.volume_total,r.inicio,r.fim].join(' '))}" data-status="${esc(r.status||r.resultado||'PENDENTE')}">
+ <td>${esc(r.lote||r.numero_lote)}</td><td>${esc(r.pedido||r.numero_pedido)}</td><td>${esc(r.destino||r.rota)}</td><td>${esc(r.peso||r.peso_total_kg)}</td><td>${esc(r.volumes||r.volume_total)}</td><td>${esc(r.inicio)}</td><td>${esc(r.fim)}</td><td>${badge(r.status||'PENDENTE',resultClass(r.status||r.resultado))}</td><td><button class="btn secondary" onclick="details('${esc(r.lote||'')}')">Ver</button></td></tr>`).join('');
+ return myTablePage('Minhas Separações','Consulte e filtre somente as separações vinculadas ao seu usuário.',['Lote','Pedido','Destino','Peso','Volumes','Início','Fim','Status',''],rows,'separacoes');
+}
+function carregamentosPage(){
+ const d=userCars();
+ const rows=d.map(r=>`<tr data-search="${esc([r.romaneio||r.numero_romaneio,r.destino||r.rota,r.motorista,r.placa||r.veiculo,r.peso||r.peso_total_kg,r.volumes||r.volume_total,r.inicio,r.fim].join(' '))}" data-status="${esc(r.resultado||r.status||'PENDENTE')}">
+ <td>${esc(r.romaneio||r.numero_romaneio)}</td><td>${esc(r.destino||r.rota)}</td><td>${esc(r.motorista)}</td><td>${esc(r.placa||r.veiculo)}</td><td>${esc(r.peso||r.peso_total_kg)}</td><td>${esc(r.volumes||r.volume_total)}</td><td>${esc(r.inicio)}</td><td>${esc(r.fim)}</td><td>${badge(r.resultado||r.status||'PENDENTE',resultClass(r.resultado||r.status))}</td></tr>`).join('');
+ return myTablePage('Meus Carregamentos','Consulte e filtre somente os carregamentos vinculados ao seu usuário.',['Romaneio','Rota/Destino','Motorista','Placa','Peso','Volumes','Início','Fim','Resultado'],rows,'carregamentos');
+}
+function myTablePage(title,sub,heads,rows,type){
+ return '<div class="page-title"><h1>'+esc(title)+'</h1><p>'+esc(sub)+'</p></div>'+
+ '<div class="panel my-filter-panel" data-filter-type="'+type+'"><div class="filters my-filters">'+
+ '<input id="mySearchFilter" type="search" placeholder="'+(type==='separacoes'?'Pesquisar lote, pedido, destino...':'Pesquisar romaneio, motorista, placa, destino...')+'" autocomplete="off">'+
+ '<select id="myStatusFilter"><option value="">Todos os status</option><option value="finalizada">Finalizada</option><option value="finalizado">Finalizado</option><option value="andamento">Em andamento</option><option value="ok">OK</option><option value="nao ok">NÃO OK</option><option value="pendente">Pendente</option></select>'+
+ '<button type="button" class="btn" id="myApplyFilter">Filtrar</button><button type="button" class="btn secondary" id="myClearFilter">Limpar</button>'+
+ '<span id="myFilterCount" class="filter-count"></span></div>'+
+ '<div class="table-wrap"><table class="table"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody id="myDataRows">'+(rows||'<tr><td colspan="20" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div></div>';
+}
 function conferenciasPage(){const d=userConfs();return tablePage('Minhas Conferências','Somente usuários com permissão de conferência.',['Operação','Lote/Pedido','Data/Hora','Resultado','Divergência','Qtd. divergente','Observação'],d.map(r=>`<tr><td>${esc(r.operacao||r.tipo_operacao)}</td><td>${esc(r.referencia||r.lote||r.pedido)}</td><td>${esc(r.hora||r.fim||r.inicio)}</td><td>${badge(r.resultado||'PENDENTE',resultClass(r.resultado))}</td><td>${esc(r.ocorrencia||'—')}</td><td>${esc(r.quantidade_divergente||r.qtd||'—')}</td><td>${esc(r.observacao||'—')}</td></tr>`).join(''));}
 function atividadesPage(){const d=userActs();return tablePage('Minhas Atividades','Preserva a descrição original registrada no SIGA, mesmo quando o texto varia.',['Hora','Tipo','Descrição original','Status','Detalhes'],d.map(e=>`<tr><td>${esc(e.hora||e.inicio||'')}</td><td>${esc(e.tipo||'Atividade')}</td><td>${esc(e.descricao_original||e.descricao||e.atividade||e.texto||e.detalhes||'')}</td><td>${badge(e.status||'PENDENTE',resultClass(e.status))}</td><td><button class="btn secondary" onclick="showToast('Detalhes da atividade')">Ver</button></td></tr>`).join(''));}
 function relatoriosPage(){const s=userSeps(),c=userCars(),f=userConfs(),a=userActs(),okF=f.filter(x=>norm(x.resultado)==='ok').length,badF=f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,okC=c.filter(x=>norm(x.resultado)==='ok').length,badC=c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,total=s.length+c.length+f.length,results=okF+badF+okC+badC,rate=results?Math.round((okF+okC)/results*100):0;return '<div class="page-title"><div class="panel-title"><div><h1>Relatórios Operacionais</h1><p>Resumo dos registros disponíveis para este usuário.</p></div><div class="hero-actions"><button class="btn secondary" onclick="exportReport()">⇩ Exportar relatório</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div></div><div class="report-kpis"><div class="perf-kpi"><span>Separações</span><strong>'+s.length+'</strong><small>Registros vinculados</small></div><div class="perf-kpi"><span>Carregamentos</span><strong>'+c.length+'</strong><small>Registros vinculados</small></div><div class="perf-kpi"><span>Conferências</span><strong>'+f.length+'</strong><small>Registros vinculados</small></div><div class="perf-kpi"><span>Conformidade registrada</span><strong>'+rate+'%</strong><small>'+results+' resultados OK/NÃO OK</small></div></div><div class="grid2"><div class="panel"><h3>📦 Produção operacional</h3><div class="sub">Quantidade de registros por tipo</div>'+bar('Separações',s.length,Math.max(total,1),'')+bar('Carregamentos',c.length,Math.max(total,1),'green')+bar('Conferências',f.length,Math.max(total,1),'purple')+bar('Atividades',a.length,Math.max(a.length,s.length,c.length,f.length,1),'dark')+'</div><div class="panel"><h3>✓ Qualidade e ocorrências</h3><div class="sub">Resultados registrados nas conferências e carregamentos</div>'+bar('Conferências OK',okF,Math.max(f.length,1),'green')+bar('Conferências NÃO OK',badF,Math.max(f.length,1),'red')+bar('Carregamentos OK',okC,Math.max(c.length,1),'green')+bar('Carregamentos NÃO OK',badC,Math.max(c.length,1),'red')+'</div></div><div class="panel report-table"><div class="panel-title"><div><h3>Resumo por operação</h3><div class="sub">Valores calculados a partir dos registros atuais.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Operação</th><th>Total</th><th>OK</th><th>NÃO OK</th><th>Sem resultado</th></tr></thead><tbody><tr><td>Separações</td><td>'+s.length+'</td><td>'+s.filter(x=>norm(x.resultado)==='ok').length+'</td><td>'+s.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length+'</td><td>'+s.filter(x=>!x.resultado).length+'</td></tr><tr><td>Carregamentos</td><td>'+c.length+'</td><td>'+okC+'</td><td>'+badC+'</td><td>'+c.filter(x=>!x.resultado).length+'</td></tr><tr><td>Conferências</td><td>'+f.length+'</td><td>'+okF+'</td><td>'+badF+'</td><td>'+f.filter(x=>!x.resultado).length+'</td></tr><tr><td>Atividades</td><td>'+a.length+'</td><td>—</td><td>—</td><td>'+a.filter(x=>!x.status).length+'</td></tr></tbody></table></div></div>';}
@@ -636,4 +655,45 @@ document.addEventListener('change',e=>{
  window.applyFilters=RUN;
  window.filterRows=function(v){const c=C();if(c?.input)c.input.value=String(v??'');RUN()};
  window.clearFilters=CLEAR;
+})();
+
+/* ===== FILTROS NOVOS - MINHAS SEPARACOES / MEUS CARREGAMENTOS ===== */
+(function(){
+ const N=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ function apply(){
+   const panel=document.querySelector('.my-filter-panel');if(!panel)return;
+   const q=N(panel.querySelector('#mySearchFilter')?.value||'');
+   const st=N(panel.querySelector('#myStatusFilter')?.value||'');
+   const rows=[...panel.querySelectorAll('#myDataRows > tr')].filter(r=>r.cells?.length);
+   let count=0;
+   rows.forEach(r=>{
+     const text=N(r.dataset.search||r.textContent);
+     const status=N(r.dataset.status||'');
+     let ok=!q||text.includes(q);
+     if(ok&&st){
+       if(st==='ok')ok=status==='ok';
+       else if(st==='nao ok')ok=status.includes('nao ok');
+       else if(st==='andamento')ok=status.includes('andamento');
+       else ok=status.includes(st);
+     }
+     r.hidden=!ok;
+     r.style.display=ok?'table-row':'none';
+     if(ok)count++;
+   });
+   const counter=panel.querySelector('#myFilterCount');
+   if(counter)counter.textContent=count+' de '+rows.length+' registros';
+ }
+ function clear(){
+   const p=document.querySelector('.my-filter-panel');if(!p)return;
+   const q=p.querySelector('#mySearchFilter'),s=p.querySelector('#myStatusFilter');
+   if(q)q.value='';if(s)s.value='';apply();
+ }
+ document.addEventListener('click',e=>{
+   if(e.target?.id==='myApplyFilter'){e.preventDefault();apply();}
+   if(e.target?.id==='myClearFilter'){e.preventDefault();clear();}
+ });
+ document.addEventListener('input',e=>{if(e.target?.id==='mySearchFilter')apply();});
+ document.addEventListener('change',e=>{if(e.target?.id==='myStatusFilter')apply();});
+ window.applyMyFilters=apply;
+ window.clearMyFilters=clear;
 })();
