@@ -442,3 +442,89 @@ function restoreUiStateV2(){
 window.addEventListener('beforeunload',persistUiStateV2);
 document.addEventListener('input',persistUiStateV2,true);
 document.addEventListener('change',persistUiStateV2,true);
+
+
+/* ===== FILTROS UNIFICADOS V4 ===== */
+function filterText(v){
+ return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function getFilterControls(){
+ const root=document.querySelector('#dataRows');
+ if(!root)return null;
+ return {
+  root,
+  input:document.querySelector('#searchFilter')||document.querySelector('.filters input'),
+  period:document.querySelector('#periodFilter'),
+  status:document.querySelector('#statusFilter')
+ };
+}
+function filterDateFromRow(row){
+ const raw=String(row?.cells?.[0]?.textContent||'').trim();
+ if(!raw)return new Date();
+ let m=raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+ if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));
+ if(/^\d{1,2}:\d{2}(?::\d{2})?$/.test(raw)){
+  const [hh,mm,ss='0']=raw.split(':').map(Number),d=new Date();
+  d.setHours(hh,mm,Number(ss),0);return d;
+ }
+ const d=new Date(raw);
+ return Number.isNaN(d.getTime())?new Date():d;
+}
+function filterStatus(row){
+ const badge=row.querySelector('.badge');
+ return filterText(badge?badge.textContent:row.innerText);
+}
+function filterDateOK(row,key){
+ key=filterText(key);
+ if(!key||key==='all'||key==='todos'||key==='todo periodo')return true;
+ const d=filterDateFromRow(row),now=new Date();
+ const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ if(key==='hoje'||key==='today')return d>=start&&d<=now;
+ if(key==='mes'||key==='este mes'||key==='month')return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+ const n=parseInt(key,10);
+ if(Number.isFinite(n))return d>=new Date(start.getTime()-(n-1)*86400000)&&d<=now;
+ return true;
+}
+function filterStatusOK(row,wanted){
+ const w=filterText(wanted);
+ if(!w||w==='todos'||w==='todos os status')return true;
+ const s=filterStatus(row);
+ if(w==='ok')return s==='ok'||(s.includes('ok')&&!s.includes('nao ok'));
+ if(w==='nao ok')return s.includes('nao ok');
+ if(w==='finalizada')return s.includes('finalizada');
+ if(w==='finalizado')return s.includes('finalizado');
+ if(w==='em andamento')return s.includes('em andamento');
+ if(w==='pendente')return s.includes('pendente');
+ return s.includes(w);
+}
+function applyFilters(){
+ const c=getFilterControls();if(!c)return;
+ const q=filterText(c.input?.value||''),period=c.period?.value||'all',status=c.status?.value||'Todos os status';
+ const rows=[...c.root.querySelectorAll('tr')].filter(r=>r.cells&&r.cells.length);
+ let visible=0;
+ rows.forEach(row=>{
+  const hay=filterText(row.textContent);
+  const ok=(!q||hay.includes(q))&&filterStatusOK(row,status)&&filterDateOK(row,period);
+  row.hidden=!ok;
+  row.style.display=ok?'':'none';
+  if(ok)visible++;
+ });
+ const count=document.querySelector('#filterCount');if(count)count.textContent=visible+' de '+rows.length+' registros';
+}
+function filterRows(value){
+ const input=document.querySelector('#searchFilter')||document.querySelector('.filters input');
+ if(input)input.value=String(value??'');
+ applyFilters();
+}
+function clearFilters(){
+ const c=getFilterControls();if(!c)return;
+ if(c.input)c.input.value='';
+ if(c.period)c.period.value='all';
+ if(c.status)c.status.value='Todos os status';
+ applyFilters();
+ showToast('Filtros limpos');
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('.filters .btn');
+ if(b&&b.textContent.trim().toLowerCase().includes('filtrar')){e.preventDefault();applyFilters();}
+});
