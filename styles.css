@@ -91,3 +91,12 @@ header .header-actions{display:flex;align-items:center;gap:7px;position:relative
 .who i{width:32px;height:32px}
 @media(max-width:980px){header{height:64px;padding:0 14px}.header-meta{display:none}.header-title{min-width:0}.header-actions{margin-left:auto!important}.who>span,.who>div{display:none}}
 @media(max-width:560px){header{height:58px;padding:0 10px;gap:7px}.header-title b{font-size:13px}.header-title small{font-size:6.5px}.header-actions{margin-left:auto!important}.who{display:flex}.who i{width:31px;height:31px}.notify-btn{width:32px;height:32px}.header-clock{display:none}}
+
+/* ===== INTERAÇÕES DOS CARDS ===== */
+.stat.clickable{cursor:pointer;transition:transform .18s,filter .18s,box-shadow .18s}
+.stat.clickable:hover{transform:translateY(-3px);filter:brightness(1.07);box-shadow:0 20px 42px rgba(0,0,0,.28)}
+.stat.clickable:active{transform:translateY(-1px)}
+.stat.clickable small{position:relative;z-index:2}
+.filters .btn{white-space:nowrap}
+@media(max-width:980px){.header-title{flex:1}.header-meta{display:none}}
+@media(max-width:560px){.header-title{overflow:hidden}.header-title small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.filters{align-items:stretch}.filters input,.filters select,.filters .btn{min-height:38px}.filter-count{font-size:8px}}
