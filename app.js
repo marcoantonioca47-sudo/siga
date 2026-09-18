@@ -1176,3 +1176,19 @@ function relatoriosPage(){
   };
   document.addEventListener('DOMContentLoaded',()=>startAutoSync());
 })();
+
+
+/* ===== SEPARAÇÕES: RESULTADO OK / NOK ===== */
+(function(){
+  window.separacoesPage=function(){
+    const d=userSeps();
+    const rows=d.map((r,i)=>{
+      const resultado=r.resultado||'';
+      const resultadoHtml=resultado
+        ? badge(resultado==='NÃO OK'?'NOK':'OK',resultClass(resultado))
+        : badge('PENDENTE','pending');
+      return '<tr><td>'+esc(r.lote||r.numero_lote)+'</td><td>'+esc(r.pedido||r.numero_pedido)+'</td><td>'+esc(r.destino||r.rota)+'</td><td>'+esc(r.peso||r.peso_total_kg)+'</td><td>'+esc(r.volumes||r.volume_total)+'</td><td>'+esc(r.inicio||'—')+'</td><td>'+esc(r.fim||'—')+'</td><td>'+badge(r.status||'PENDENTE',resultClass(r.status))+'</td><td class="sep-result">'+resultadoHtml+'</td><td><button class="btn secondary" onclick="details(\\''+esc(r.lote||r.numero_lote||'')+'\\')">Ver</button></td></tr>';
+    }).join('');
+    return tablePage('Minhas Separações','Acompanhe o status e o resultado de cada separação.',['Lote','Pedido','Destino','Peso','Volumes','Início','Fim','Status','Resultado',''],rows);
+  };
+})();
