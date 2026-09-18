@@ -86,6 +86,7 @@ function applyUser(u){
 
 window.login=function(){
  const msg=document.querySelector('#loginmsg');
+ try{
  const id=norm(document.querySelector('#u')&&document.querySelector('#u').value);
  const pw=(document.querySelector('#pw')&&document.querySelector('#pw').value)||'';
  if(!id||!pw){if(msg)msg.textContent='Informe usuário e senha.';return false;}
@@ -94,6 +95,11 @@ window.login=function(){
  if(msg)msg.textContent='';
  applyUser(u);
  return false;
+ }catch(err){
+  if(msg)msg.textContent='Erro ao entrar. Recarregue a página e tente novamente.';
+  console.error('SIGA login:',err);
+  return false;
+ }
 };
 
 window.restoreSession=function(){
