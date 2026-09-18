@@ -740,7 +740,7 @@ function reportMonthMatch(o,month){
 }
 function reportMonthOptions(selected='all'){
   const names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  return '<option value="all" '+(selected==='all'?'selected':'')+'>Todos os meses</option>'+names.map((n,i)=>'<option value="'+i+'" '+(String(selected)===String(i)?'selected':'')+'>'+n+' • '+new Date().getFullYear()+'</option>').join('');
+  return '<option value="all" '+(selected==='all'?'selected':'')+'>Todos os meses</option>'+names.map((n,i)=>'<option value="'+i+'" '+(String(selected)===String(i)?'selected':'')+'>'+n+'</option>').join('');
 }
 function selectedReportMonth(){
   return document.querySelector('#reportMonthFilter')?.value||'all';
