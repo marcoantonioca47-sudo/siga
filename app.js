@@ -203,7 +203,15 @@ function usersPage(){
  if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';
  const list=accountList();
  const separadores=list.filter(function(u){return u.permissions&&u.permissions.separacoes;});
- return '<div class="page-title"><div><h1>Gerenciar Usuários</h1><p>Cadastre usuários e configure permissões de acesso.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas</div></div></div><div class="user-list">'+list.map(function(u){const pc=PERMISSION_DEFS.length+1;return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões disponíveis</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(\\''+esc(u.id)+'\\')">Editar</button><button class="btn danger" onclick="deleteUser(\\''+esc(u.id)+'\\')">Excluir</button></div></div>';}).join('')+'</div></div><div class="admin-section"><div class="admin-subtitle">USUÁRIOS HABILITADOS PARA SEPARAÇÃO</div><div class="panel"><div class="user-list">'+separadores.map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • Filial '+esc(u.cd||'CDD')+'</small></div><span class="badge ok">SEPARADOR</span></div>';}).join('')+'</div></div>';
+ const rows=list.map(function(u){
+  const pc=PERMISSION_DEFS.length+1;
+  const id=esc(u.id||'');
+  return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+id+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões disponíveis</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(&quot;'+id+'&quot;)">Editar</button><button class="btn danger" onclick="deleteUser(&quot;'+id+'&quot;)">Excluir</button></div></div>';
+ }).join('');
+ const sepRows=separadores.map(function(u){
+  return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • Filial '+esc(u.cd||'CDD')+'</small></div><span class="badge ok">SEPARADOR</span></div>';
+ }).join('');
+ return '<div class="page-title"><div><h1>Gerenciar Usuários</h1><p>Cadastre usuários e configure permissões de acesso.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas</div></div></div><div class="user-list">'+rows+'</div></div><div class="admin-section"><div class="admin-subtitle">USUÁRIOS HABILITADOS PARA SEPARAÇÃO</div><div class="panel"><div class="user-list">'+sepRows+'</div></div></div>';
 }
 window.newUserForm=function(user){
  if(!isAdmin())return;
