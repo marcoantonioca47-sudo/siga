@@ -868,3 +868,37 @@ function relatoriosPage(){
  ['separacoes','carregamentos','atividades','conferencias'].forEach(k=>{if(Array.isArray(portalData?.[k]))portalData[k].forEach(stamp);});
  try{saveData()}catch(e){}
 })();
+
+/* ===== CORREÇÃO FINAL: DATA E HORA SEPARADAS + HORA EFETIVA ===== */
+(function(){
+ const pad=n=>String(n).padStart(2,'0');
+ function parseDateTime(v){
+  if(v==null||v==='')return null;
+  const s=String(v).trim();
+  let d=new Date(s);
+  if(!Number.isNaN(d.getTime()))return d;
+  let m=s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})(?:[ T]+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?)?$/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  m=s.match(/^(\\d{1,2}):(\\d{2})(?::(\\d{2}))?$/);
+  if(m){const n=new Date();n.setHours(+m[1],+m[2],+(m[3]||0),0);return n;}
+  return null;
+ }
+ function dt(o){
+  const status=norm(o?.status||o?.resultado||'');
+  const running=/andamento|iniciado|aberto/i.test(status);
+  const finished=/finalizad|conclu|encerrad|terminad|ok|não ok|nao ok/i.test(status);
+  let raw=running?(o.inicio||o.hora||o.data_hora||o.dataHora):(finished?(o.fim||o.hora||o.inicio||o.data_hora||o.dataHora):(o.hora||o.inicio||o.fim||o.data_hora||o.dataHora));
+  return parseDateTime(raw);
+ }
+ function dateText(o){const d=dt(o);return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear():'—';}
+ function timeText(o){const d=dt(o);return d?pad(d.getHours())+':'+pad(d.getMinutes()):'—';}
+ window.recordDateText=dateText; window.recordTimeText=timeText;
+ function sepRows(d){return d.map((r,i)=>'<tr><td>'+esc(r.lote||r.numero_lote)+'</td><td>'+esc(r.pedido||r.numero_pedido)+'</td><td>'+esc(r.destino||r.rota)+'</td><td>'+esc(r.peso||r.peso_total_kg)+'</td><td>'+esc(r.volumes||r.volume_total)+'</td><td class="date-cell">'+dateText(r)+'</td><td class="time-cell">'+timeText(r)+'</td><td>'+badge(r.status||r.resultado||'PENDENTE',resultClass(r.status||r.resultado))+'</td><td><button class="btn secondary" onclick="details(\\''+esc(r.lote||r.numero_lote||'')+'\\')">Ver</button></td></tr>').join('');}
+ function carRows(d){return d.map((r,i)=>'<tr><td>'+esc(r.romaneio||r.numero_romaneio)+'</td><td>'+esc(r.destino||r.rota)+'</td><td>'+esc(r.motorista)+'</td><td>'+esc(r.placa||r.veiculo)+'</td><td>'+esc(r.peso||r.peso_total_kg)+'</td><td>'+esc(r.volumes||r.volume_total)+'</td><td class="date-cell">'+dateText(r)+'</td><td class="time-cell">'+timeText(r)+'</td><td>'+badge(r.resultado||r.status||'PENDENTE',resultClass(r.resultado||r.status))+'</td><td><button class="btn secondary" onclick="loadingDetails('+i+')">Ver</button></td></tr>').join('');}
+ function actRows(d){return d.map((e,i)=>'<tr><td class="date-cell">'+dateText(e)+'</td><td class="time-cell">'+timeText(e)+'</td><td>'+esc(e.tipo||'Atividade')+'</td><td>'+esc(e.descricao_original||e.descricao||e.atividade||e.texto||e.detalhes||'')+'</td><td>'+badge(e.status||'PENDENTE',resultClass(e.status))+'</td><td><button class="btn secondary" onclick="activityDetail('+i+')">Ver</button></td></tr>').join('');}
+ function confRows(d){return d.map(r=>'<tr><td>'+esc(r.operacao||r.tipo_operacao)+'</td><td>'+esc(r.referencia||r.lote||r.pedido)+'</td><td class="date-cell">'+dateText(r)+'</td><td class="time-cell">'+timeText(r)+'</td><td>'+badge(r.resultado||'PENDENTE',resultClass(r.resultado))+'</td><td>'+esc(r.ocorrencia||'—')+'</td><td>'+esc(r.quantidade_divergente||r.qtd||'—')+'</td><td>'+esc(r.observacao||'—')+'</td></tr>').join('');}
+ window.separacoesPage=function(){const d=userSeps();return tablePage('Minhas Separações','Apenas separações vinculadas ao seu usuário.',['Lote','Pedido','Destino','Peso','Volumes','Data','Hora','Status',''],sepRows(d));};
+ window.carregamentosPage=function(){const d=userCars();return tablePage('Meus Carregamentos','Apenas carregamentos vinculados ao seu usuário.',['Romaneio','Rota/Destino','Motorista','Placa','Peso','Volumes','Data','Hora','Resultado',''],carRows(d));};
+ window.atividadesPage=function(){const d=userActs();return tablePage('Minhas Atividades','Preserva a descrição original registrada no SIGA. A hora exibida acompanha o início quando está em andamento e o fim quando está finalizada.',['Data','Hora','Tipo','Descrição original','Status','Detalhes'],actRows(d));};
+ window.conferenciasPage=function(){const d=userConfs();return tablePage('Minhas Conferências','Somente usuários com permissão de conferência.',['Operação','Lote/Pedido','Data','Hora','Resultado','Divergência','Qtd. divergente','Observação'],confRows(d));};
+})();
