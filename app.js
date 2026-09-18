@@ -202,6 +202,7 @@ function saveAccounts(list){try{localStorage.setItem(ACCOUNT_STORE,JSON.stringif
 function admin(){
  if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';
  const list=accountList();
+ const separadores=list.filter(function(u){return u.permissions&&u.permissions.separacoes;});
  const summary=reports();
  const occ=occurrences();
  const det=details();
