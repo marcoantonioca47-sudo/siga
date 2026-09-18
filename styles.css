@@ -70,3 +70,24 @@ main{padding:28px;max-width:1480px;margin:auto;min-height:calc(100vh - 112px)}.b
 
 /* ===== REPORTS ===== */
 .report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:13px}.report-table{margin-top:13px}.report-table .table td:first-child{font-weight:800}@media(max-width:980px){.report-kpis{grid-template-columns:1fr 1fr}}@media(max-width:560px){.report-kpis{grid-template-columns:1fr 1fr}.report-table{overflow:hidden}}
+
+
+/* ===== HEADER REFINADO ===== */
+header{height:72px;padding:0 22px;gap:14px;justify-content:flex-start}
+header .hamb{flex:0 0 auto}
+.header-title{min-width:205px;display:flex;flex-direction:column;justify-content:center}
+.header-title b{font-size:15px;line-height:1}
+.header-title small{display:block;color:#9fb5c4;font-size:8px;margin-top:4px;letter-spacing:.2px}
+.header-meta{display:flex;align-items:center;gap:8px;margin-left:auto}
+.header-info{min-width:92px;padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.055);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.header-info span{display:block;color:#8198a8;font-size:6.5px;font-weight:800;letter-spacing:.8px}
+.header-info b{display:block;color:#edf5f8;font-size:9px;margin-top:3px;white-space:nowrap}
+header .header-actions{display:flex;align-items:center;gap:7px;position:relative;margin:0}
+.who{display:flex;align-items:center;gap:8px;color:#c6d5df;font-size:9px}
+.who>div{display:flex;flex-direction:column;align-items:flex-end}
+.who>div b{font-size:9px;color:#edf4f7}
+.who>div small{font-size:7px;color:#9fb4c1;margin-top:2px}
+.who>span{font-size:8px;color:#9fb4c1}
+.who i{width:32px;height:32px}
+@media(max-width:980px){header{height:64px;padding:0 14px}.header-meta{display:none}.header-title{min-width:0}.header-actions{margin-left:auto!important}.who>span,.who>div{display:none}}
+@media(max-width:560px){header{height:58px;padding:0 10px;gap:7px}.header-title b{font-size:13px}.header-title small{font-size:6.5px}.header-actions{margin-left:auto!important}.who{display:flex}.who i{width:31px;height:31px}.notify-btn{width:32px;height:32px}.header-clock{display:none}}
