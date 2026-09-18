@@ -43,8 +43,56 @@ const users=[['JS','João Silva','Operador','Separação • Carregamento • At
 
 let portalData=loadData();
 function loadData(){
- try{const x=JSON.parse(localStorage.getItem(STORAGE_DATA)||'null');return {separacoes:Array.isArray(x?.separacoes)?x.separacoes:sampleSeps,carregamentos:Array.isArray(x?.carregamentos)?x.carregamentos:sampleCars,atividades:Array.isArray(x?.atividades)?x.atividades:sampleActs,conferencias:Array.isArray(x?.conferencias)?x.conferencias:sampleConfs};}
- catch{return {separacoes:sampleSeps,carregamentos:sampleCars,atividades:sampleActs,conferencias:sampleConfs};}
+ let data;
+ try{const x=JSON.parse(localStorage.getItem(STORAGE_DATA)||'null');data={separacoes:Array.isArray(x?.separacoes)?x.separacoes:sampleSeps,carregamentos:Array.isArray(x?.carregamentos)?x.carregamentos:sampleCars,atividades:Array.isArray(x?.atividades)?x.atividades:sampleActs,conferencias:Array.isArray(x?.conferencias)?x.conferencias:sampleConfs};}
+ catch{data={separacoes:sampleSeps,carregamentos:sampleCars,atividades:sampleActs,conferencias:sampleConfs};}
+ return addDemoData(data);
+}
+function addDemoData(data){
+ const key='siga30_demo_seed_v3';
+ if(localStorage.getItem(key))return data;
+ const seps=[
+  {lote:'LT-1041',pedido:'PED-4678',destino:'Viçosa',peso:'690 kg',volumes:'34',inicio:'07:40',fim:'08:28',status:'Finalizada',resultado:'OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {lote:'LT-1045',pedido:'PED-4682',destino:'Mariana',peso:'920 kg',volumes:'46',inicio:'09:05',fim:'10:02',status:'Finalizada',resultado:'OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {lote:'LT-1048',pedido:'PED-4690',destino:'Rio Casca',peso:'540 kg',volumes:'27',inicio:'10:35',fim:'',status:'Em andamento',resultado:'',usuario_id:'joao.silva',filial_id:'CDD'},
+  {lote:'LT-1050',pedido:'PED-4694',destino:'Ubá',peso:'780 kg',volumes:'39',inicio:'11:20',fim:'12:08',status:'Finalizada',resultado:'OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {lote:'LT-1054',pedido:'PED-4701',destino:'Ponte Nova',peso:'430 kg',volumes:'21',inicio:'13:10',fim:'14:00',status:'Finalizada',resultado:'NÃO OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {lote:'LT-1058',pedido:'PED-4708',destino:'Ouro Preto',peso:'610 kg',volumes:'30',inicio:'14:25',fim:'',status:'Pendente',resultado:'',usuario_id:'joao.silva',filial_id:'CDD'}
+ ];
+ const cars=[
+  {romaneio:'ROM-786',destino:'Viçosa',motorista:'André Martins',placa:'QWE-3184',peso:'9.200 kg',volumes:'41',inicio:'08:40',fim:'10:15',resultado:'OK',status:'Finalizado',usuario_id:'joao.silva',filial_id:'CDD'},
+  {romaneio:'ROM-787',destino:'Mariana',motorista:'Lucas Ferreira',placa:'RTA-5027',peso:'11.300 kg',volumes:'52',inicio:'10:30',fim:'12:10',resultado:'OK',status:'Finalizado',usuario_id:'joao.silva',filial_id:'CDD'},
+  {romaneio:'ROM-788',destino:'Rio Casca',motorista:'Bruno Costa',placa:'HLM-7412',peso:'6.800 kg',volumes:'29',inicio:'12:35',fim:'14:00',resultado:'NÃO OK',status:'Finalizado',usuario_id:'joao.silva',filial_id:'CDD'},
+  {romaneio:'ROM-789',destino:'Ubá',motorista:'Diego Souza',placa:'PXR-9041',peso:'8.100 kg',volumes:'35',inicio:'14:20',fim:'',resultado:'',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'},
+  {romaneio:'ROM-790',destino:'Ponte Nova',motorista:'Marcelo Reis',placa:'QOP-6619',peso:'10.500 kg',volumes:'47',inicio:'15:10',fim:'',resultado:'',status:'Pendente',usuario_id:'joao.silva',filial_id:'CDD'}
+ ];
+ const acts=[
+  {hora:'07:40',tipo:'Separação',descricao_original:'Início da separação • LT-1041 • Viçosa',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'08:28',tipo:'Separação',descricao_original:'Separação finalizada • LT-1041',status:'Finalizada',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'08:35',tipo:'Conferência',descricao_original:'Conferência • PED-4678 • carga conferida',status:'OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'09:05',tipo:'Separação',descricao_original:'Início da separação • LT-1045 • Mariana',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'10:02',tipo:'Separação',descricao_original:'Separação finalizada • LT-1045',status:'Finalizada',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'10:18',tipo:'Carregamento',descricao_original:'Início do carregamento • ROM-786 • Viçosa',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'11:10',tipo:'Carregamento',descricao_original:'Carregamento finalizado • ROM-786',status:'OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'13:10',tipo:'Separação',descricao_original:'Início da separação • LT-1054 • Ponte Nova',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'14:00',tipo:'Conferência',descricao_original:'Conferência • PED-4701 • 2 volumes divergentes',status:'NÃO OK',usuario_id:'joao.silva',filial_id:'CDD'},
+  {hora:'14:20',tipo:'Carregamento',descricao_original:'Carregamento em andamento • ROM-789 • Ubá',status:'Em andamento',usuario_id:'joao.silva',filial_id:'CDD'}
+ ];
+ const confs=[
+  {operacao:'Separação',referencia:'PED-4678',hora:'08:35',resultado:'OK',ocorrencia:'—',quantidade_divergente:'—',observacao:'Conferência concluída sem divergências',usuario_id:'joao.silva',filial_id:'CDD'},
+  {operacao:'Separação',referencia:'PED-4682',hora:'10:15',resultado:'OK',ocorrencia:'—',quantidade_divergente:'—',observacao:'Carga conforme',usuario_id:'joao.silva',filial_id:'CDD'},
+  {operacao:'Carregamento',referencia:'ROM-786',hora:'11:10',resultado:'OK',ocorrencia:'—',quantidade_divergente:'—',observacao:'Carregamento conforme',usuario_id:'joao.silva',filial_id:'CDD'},
+  {operacao:'Separação',referencia:'PED-4701',hora:'14:00',resultado:'NÃO OK',ocorrencia:'2 volumes',quantidade_divergente:'2',observacao:'Volumes faltantes',usuario_id:'joao.silva',filial_id:'CDD'},
+  {operacao:'Carregamento',referencia:'ROM-788',hora:'14:05',resultado:'NÃO OK',ocorrencia:'1 volume',quantidade_divergente:'1',observacao:'Divergência no carregamento',usuario_id:'joao.silva',filial_id:'CDD'}
+ ];
+ const merge=(base,extra,id)=>{const seen=new Set(base.map(x=>String(x[id]||'')));return base.concat(extra.filter(x=>!seen.has(String(x[id]||''))));};
+ data.separacoes=merge(data.separacoes,seps,'lote');
+ data.carregamentos=merge(data.carregamentos,cars,'romaneio');
+ data.atividades=data.atividades.concat(acts);
+ data.conferencias=data.conferencias.concat(confs);
+ localStorage.setItem(STORAGE_DATA,JSON.stringify(data));
+ localStorage.setItem(key,'1');
+ return data;
 }
 function saveData(){localStorage.setItem(STORAGE_DATA,JSON.stringify(portalData));}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
