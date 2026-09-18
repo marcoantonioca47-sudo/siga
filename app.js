@@ -110,10 +110,11 @@ function logout(){state.user=null;state.page='home';try{localStorage.removeItem(
 window.logout=logout;
 
 function nav(){
- const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['perfil','●','Perfil / Acesso',true],['usuarios','♙','Gerenciar Usuários',true],['logout','↪','Sair',true]];
+ const adminAccess=isAdmin();
+ const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['perfil','●','Perfil / Acesso',true],['admin','⚙','Administrador',adminAccess],['logout','↪','Sair',true]];
  const el=document.querySelector('#nav');if(!el)return;
  el.innerHTML=items.filter(function(x){return x[3];}).map(function(x){return '<button class="nav-item '+(state.page===x[0]?'active':'')+'" data-page="'+x[0]+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>';}).join('');
- el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='usuarios'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
+ el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='admin'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
 }
 
 function updateUI(){
@@ -198,20 +199,14 @@ function accountList(){
  }catch(e){return accounts.slice();}
 }
 function saveAccounts(list){try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));return true;}catch(e){return false;}}
-function admin(){ return usersPage(); }
-function usersPage(){
+function admin(){
  if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';
  const list=accountList();
  const separadores=list.filter(function(u){return u.permissions&&u.permissions.separacoes;});
- const rows=list.map(function(u){
-  const pc=PERMISSION_DEFS.length+1;
-  const id=esc(u.id||'');
-  return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+id+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões disponíveis</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(&quot;'+id+'&quot;)">Editar</button><button class="btn danger" onclick="deleteUser(&quot;'+id+'&quot;)">Excluir</button></div></div>';
- }).join('');
- const sepRows=separadores.map(function(u){
-  return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • Filial '+esc(u.cd||'CDD')+'</small></div><span class="badge ok">SEPARADOR</span></div>';
- }).join('');
- return '<div class="page-title"><div><h1>Gerenciar Usuários</h1><p>Cadastre usuários e configure permissões de acesso.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas</div></div></div><div class="user-list">'+rows+'</div></div><div class="admin-section"><div class="admin-subtitle">USUÁRIOS HABILITADOS PARA SEPARAÇÃO</div><div class="panel"><div class="user-list">'+sepRows+'</div></div></div>';
+ const summary=reports();
+ const occ=occurrences();
+ const det=details();
+ return '<div class="page-title"><div><h1>Administrador</h1><p>Gestão completa do sistema: usuários, detalhes, ocorrências e relatórios.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas • acesso administrativo completo</div></div></div><div class="user-list">'+list.map(function(u){const pc=PERMISSION_DEFS.length+1;return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões disponíveis</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(\''+esc(u.id)+'\')">Editar</button><button class="btn danger" onclick="deleteUser(\''+esc(u.id)+'\')">Excluir</button></div></div>';}).join('')+'</div></div><div class="admin-section"><div class="admin-subtitle">TODOS OS SEPARADORES</div><div class="panel"><div class="user-list">'+separadores.map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • Filial '+esc(u.cd||'CDD')+'</small><small>Usuário habilitado para separação</small></div><span class="badge ok">SEPARADOR</span></div>';}).join('')+'</div></div><div class="admin-subtitle">DETALHES</div>'+det+'<div class="admin-subtitle">OCORRÊNCIAS</div>'+occ+'<div class="admin-subtitle">RELATÓRIOS</div>'+summary+'</div>';
 }
 window.newUserForm=function(user){
  if(!isAdmin())return;
@@ -230,7 +225,7 @@ window.saveUserAccount=function(){
  const permissions={};document.querySelectorAll('input[name="perm"]:checked').forEach(function(e){permissions[e.value]=true;});permissions.admin=!!((document.querySelector('#permAdmin')||{}).checked);
  const list=accountList(),idx=list.findIndex(function(x){return norm(x.id)===norm(id);}),obj={id:id.trim(),name:name.trim(),password:pass,role:role,cd:cd.trim()||'CDD',permissions:permissions};
  if(idx>=0)list[idx]=obj;else{if(list.some(function(x){return norm(x.id)===norm(id);}))return toast('Usuário já cadastrado.');list.push(obj);}
- if(saveAccounts(list)){state.page='usuarios';render();toast('Usuário salvo com sucesso.');}else toast('Falha ao salvar.');
+ if(saveAccounts(list)){state.page='admin';render();toast('Usuário salvo com sucesso.');}else toast('Falha ao salvar.');
 };
 window.deleteUser=function(id){
  if(!isAdmin())return;
@@ -244,7 +239,7 @@ function render(){
  document.querySelector('#login').classList.add('hide');
  document.querySelector('#app').classList.remove('hide');
  updateUI();nav();
- const pages={home:home,separacoes:sepPage,carregamentos:carPage,atividades:actPage,conferencias:confPage,desempenho:perf,perfil:profile,usuarios:usersPage,relatorios:reports};
+ const pages={home:home,separacoes:sepPage,carregamentos:carPage,atividades:actPage,conferencias:confPage,desempenho:perf,perfil:profile,admin:admin,relatorios:reports,ocorrencias:occurrences,detalhes:details};
  const main=document.querySelector('#main');if(main)main.innerHTML=(pages[state.page]||home)();
 }
 window.render=render;
