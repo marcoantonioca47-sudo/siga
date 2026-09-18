@@ -308,3 +308,61 @@ function clearFilters(){
  const input=document.querySelector('#searchFilter'),period=document.querySelector('#periodFilter'),status=document.querySelector('#statusFilter');
  if(input)input.value='';if(period)period.value='all';if(status)status.value='Todos os status';applyFilters();showToast('Filtros limpos');
 }
+
+
+
+/* ===== FILTER ENGINE FINAL ===== */
+function normalizeFilterText(v){return norm(String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''));}
+function filterPeriodKey(v){const x=normalizeFilterText(v);if(!x||x==='todos'||x==='todo periodo'||x==='todo')return'all';if(x==='hoje')return'today';if(x.includes('7'))return'7';if(x.includes('30'))return'30';if(x.includes('mes'))return'month';return'all';}
+function filterStatusMatch(row,wanted){
+ const w=normalizeFilterText(wanted);if(!w||w==='todos os status'||w==='todos')return true;
+ const text=normalizeFilterText(row.innerText||'');
+ if(w==='ok')return /(^|\s)ok(\s|$)/.test(text)&&!text.includes('nao ok');
+ if(w==='nao ok')return text.includes('nao ok');
+ if(w==='pendente')return text.includes('pendente');
+ if(w==='em andamento')return text.includes('em andamento');
+ if(w==='finalizada'||w==='finalizado')return text.includes('finalizada')||text.includes('finalizado');
+ return text.includes(w);
+}
+function rowFilterDate(row){
+ const text=(row.cells?.[0]?.textContent||'').trim();
+ if(/^\d{1,2}:\d{2}(?::\d{2})?$/.test(text))return new Date();
+ const m=text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+ if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));
+ const d=new Date(text);return Number.isNaN(d.getTime())?new Date():d;
+}
+function rowMatchesPeriod(row,key){
+ if(key==='all')return true;
+ const d=rowFilterDate(row),now=new Date(),start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ if(key==='today')return d>=start&&d<=now;
+ if(key==='month')return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();
+ const days=Number(key);return Number.isFinite(days)?d>=new Date(start.getTime()-(days-1)*86400000)&&d<=now:true;
+}
+function applyFilters(){
+ const root=document.querySelector('#dataRows');if(!root)return;
+ const box=document.querySelector('.filters');
+ const input=box?.querySelector('input');
+ const selects=box?[...box.querySelectorAll('select')]:[];
+ const period=selects.find(s=>s.id==='periodFilter'||normalizeFilterText(s.innerText).includes('7 dias')||normalizeFilterText(s.innerText).includes('mes'))?.value||'all';
+ const status=document.querySelector('#statusFilter')?.value||'Todos os status';
+ const q=normalizeFilterText(input?.value||'');
+ const rows=[...root.querySelectorAll('tr')].filter(r=>r.querySelector('td'));
+ let visible=0;
+ rows.forEach(r=>{
+  const text=normalizeFilterText(r.innerText||'');
+  const ok=(!q||text.includes(q))&&filterStatusMatch(r,status)&&rowMatchesPeriod(r,filterPeriodKey(period));
+  r.style.display=ok?'':'none';if(ok)visible++;
+ });
+ const fc=document.querySelector('#filterCount');if(fc)fc.textContent=visible+' de '+rows.length+' registros';
+}
+function filterRows(v){const input=document.querySelector('.filters input');if(input)input.value=v||'';applyFilters();}
+function clearFilters(){
+ const box=document.querySelector('.filters');if(!box)return;
+ const input=box.querySelector('input');if(input)input.value='';
+ const p=document.querySelector('#periodFilter');if(p)p.value=[...p.options].find(o=>filterPeriodKey(o.value)==='all')?.value||p.options[p.options.length-1]?.value||'';
+ const st=document.querySelector('#statusFilter');if(st)st.value='Todos os status';
+ applyFilters();showToast('Filtros limpos');
+}
+function tablePage(title,sub,heads,rows){
+ return '<div class="page-title"><h1>'+esc(title)+'</h1><p>'+esc(sub)+'</p></div><div class="panel"><div class="filters"><input id="searchFilter" placeholder="Pesquisar lote, pedido, rota, descrição..." oninput="applyFilters()" autocomplete="off"><select id="periodFilter" onchange="applyFilters()"><option value="Hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="month">Este mês</option><option value="30">Últimos 30 dias</option><option value="all">Todo período</option></select><select id="statusFilter" onchange="applyFilters()"><option>Todos os status</option><option>Finalizada</option><option>Finalizado</option><option>Em andamento</option><option>OK</option><option>NÃO OK</option><option>Pendente</option></select><button class="btn" onclick="applyFilters()">Filtrar</button><button class="btn secondary" onclick="clearFilters()">Limpar</button><span id="filterCount" class="filter-count"></span></div><div class="table-wrap"><table class="table"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody id="dataRows">'+(rows||'<tr><td colspan="20" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div></div>';
+}
