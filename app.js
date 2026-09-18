@@ -212,8 +212,9 @@ async function refreshData(manual=false){
  }finally{
   state.syncing=false;
   if(state.user){
+   const detailOpen=!!document.querySelector('#main .page-title h1') && /detalhes da separação|detalhes do carregamento/i.test(document.querySelector('#main .page-title h1')?.textContent||'');
    state.page=uiState.page;
-   render();
+   if(!detailOpen) render();
    restoreFormState(formState);
    const q=document.querySelector('#searchFilter'),p=document.querySelector('#periodFilter'),s=document.querySelector('#statusFilter');
    if(q)q.value=uiState.search;
