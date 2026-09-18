@@ -100,3 +100,31 @@ header .header-actions{display:flex;align-items:center;gap:7px;position:relative
 .filters .btn{white-space:nowrap}
 @media(max-width:980px){.header-title{flex:1}.header-meta{display:none}}
 @media(max-width:560px){.header-title{overflow:hidden}.header-title small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.filters{align-items:stretch}.filters input,.filters select,.filters .btn{min-height:38px}.filter-count{font-size:8px}}
+
+
+/* ===== NOVO VISUAL — RELATORIOS E DESEMPENHO ===== */
+.report-eyebrow{display:inline-block;font-size:8px;font-weight:900;letter-spacing:1.5px;color:#7fc4ff;margin-bottom:6px}
+.report-filter-card{margin:0 0 14px;padding:16px 18px;border-radius:17px;border:1px solid rgba(255,255,255,.17);background:linear-gradient(135deg,rgba(7,38,61,.86),rgba(6,24,40,.70));box-shadow:0 18px 42px rgba(0,0,0,.20);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.report-filter-head{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.report-filter-head>div:first-child{display:flex;flex-direction:column;gap:4px}
+.report-filter-kicker{font-size:7px;font-weight:900;letter-spacing:1.2px;color:#72bfff}
+.report-filter-head strong{font-size:12px;color:#f5fbff}
+.report-filter-head small{font-size:8px;color:#91aabb}
+.report-filter-fields{display:flex;gap:9px;flex:0 0 auto}
+.report-filter-fields label{display:flex;flex-direction:column;gap:5px;font-size:7px;font-weight:900;color:#9eb6c6;text-transform:uppercase;letter-spacing:.7px}
+.report-filter-fields select{min-width:145px;padding:11px 34px 11px 12px;border:1px solid rgba(126,194,235,.25);border-radius:10px;background:rgba(255,255,255,.085);color:#fff;outline:none;font-size:10px;font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.report-filter-fields select:focus{border-color:rgba(88,170,255,.65);box-shadow:0 0 0 3px rgba(47,140,255,.14)}
+.report-filter-fields select option{color:#142a40;background:#fff}
+.report-chart-panel{min-height:265px}
+.report-kpis .perf-kpi{position:relative;overflow:hidden}
+.report-kpis .perf-kpi:after{content:"";position:absolute;right:-25px;bottom:-35px;width:95px;height:95px;border-radius:50%;background:rgba(87,175,255,.07)}
+.report-table{box-shadow:0 18px 42px rgba(0,0,0,.18)}
+@media(max-width:700px){
+ .report-filter-head{align-items:stretch;flex-direction:column}
+ .report-filter-fields{display:grid;grid-template-columns:1fr 1fr}
+ .report-filter-fields label,.report-filter-fields select{width:100%;min-width:0}
+}
+@media(max-width:420px){
+ .report-filter-card{padding:13px}
+ .report-filter-fields{grid-template-columns:1fr}
+}
