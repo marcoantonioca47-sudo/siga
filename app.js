@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded',function(){
  if(btn)btn.onclick=function(e){e.preventDefault();window.login();};
  const pw=document.querySelector('#pw');
  if(pw)pw.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();window.login();}};
- setInterval(clock,1000);clock();
+ setInterval(clock,15000);clock();
  if(!window.restoreSession()){
   document.querySelector('#login').classList.remove('hide');
   document.querySelector('#app').classList.add('hide');
