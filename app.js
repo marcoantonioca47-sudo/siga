@@ -156,7 +156,55 @@ function logout(){localStorage.removeItem(STORAGE_USER);localStorage.removeItem(
 function restoreSession(){try{const u=JSON.parse(localStorage.getItem(STORAGE_USER)||'null');if(!u)return false;state.user=u;const p=JSON.parse(localStorage.getItem('siga30_portal_permissions_v2')||'null');if(p)state.permissions={...state.permissions,...p};render();return true;}catch{return false;}}
 function snapshotFormState(){const root=document.querySelector('#main');if(!root)return null;const fields=[...root.querySelectorAll('input,select,textarea')].map((el,i)=>({key:el.id||el.name||('__idx_'+i),tag:el.tagName,type:el.type||'',value:el.value,checked:!!el.checked,selectedIndex:el.selectedIndex}));const active=document.activeElement;return {fields,activeKey:active?(active.id||active.name||null):null,selection:active&&typeof active.selectionStart==='number'?{start:active.selectionStart,end:active.selectionEnd}:null};}
 function restoreFormState(s){if(!s)return;const root=document.querySelector('#main');if(!root)return;const all=[...root.querySelectorAll('input,select,textarea')];s.fields.forEach((x,i)=>{let el=x.key?root.querySelector('#'+CSS.escape(x.key)):null;if(!el)el=all[i];if(!el)return;if(el.type==='checkbox'||el.type==='radio')el.checked=x.checked;else el.value=x.value;if(el.tagName==='SELECT'&&x.selectedIndex>=0)el.selectedIndex=x.selectedIndex;});if(s.activeKey){const el=root.querySelector('#'+CSS.escape(s.activeKey))||root.querySelector('[name="'+CSS.escape(s.activeKey)+'"]');if(el){el.focus({preventScroll:true});if(s.selection&&typeof el.setSelectionRange==='function'){try{el.setSelectionRange(s.selection.start,s.selection.end)}catch(e){}}}}}
-async function refreshData(manual=false){if(!state.user||state.syncing)return;state.syncing=true;const formState=snapshotFormState();try{portalData=loadData();const url=(localStorage.getItem(STORAGE_API)||'').trim();if(url){const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);const json=await res.json();portalData={separacoes:Array.isArray(json.separacoes)?json.separacoes:portalData.separacoes,carregamentos:Array.isArray(json.carregamentos)?json.carregamentos:portalData.carregamentos,atividades:Array.isArray(json.atividades)?json.atividades:portalData.atividades,conferencias:Array.isArray(json.conferencias)?json.conferencias:portalData.conferencias};saveData();}state.lastSync=Date.now();if(state.user)render();restoreFormState(formState);if(manual)showToast('Informações atualizadas sem perder os dados digitados.');}catch(e){state.lastSync=Date.now();if(state.user){render();restoreFormState(formState);}if(manual)showToast('Dados locais atualizados; API não disponível.');}finally{state.syncing=false;}}
+async function refreshData(manual=false){
+ if(!state.user||state.syncing)return;
+ state.syncing=true;
+ const formState=snapshotFormState();
+ const uiState={
+  page:state.page,
+  search:document.querySelector('#searchFilter')?.value||'',
+  period:document.querySelector('#periodFilter')?.value||'all',
+  status:document.querySelector('#statusFilter')?.value||'Todos os status',
+  scroll:document.querySelector('.area')?.scrollTop||window.scrollY||0
+ };
+ try{
+  portalData=loadData();
+  const url=(localStorage.getItem(STORAGE_API)||'').trim();
+  if(url){
+   const res=await fetch(url,{cache:'no-store'});
+   if(!res.ok)throw new Error('HTTP '+res.status);
+   const json=await res.json();
+   portalData={
+    separacoes:Array.isArray(json.separacoes)?json.separacoes:portalData.separacoes,
+    carregamentos:Array.isArray(json.carregamentos)?json.carregamentos:portalData.carregamentos,
+    atividades:Array.isArray(json.atividades)?json.atividades:portalData.atividades,
+    conferencias:Array.isArray(json.conferencias)?json.conferencias:portalData.conferencias
+   };
+   saveData();
+  }
+  state.lastSync=Date.now();
+ }catch(e){
+  state.lastSync=Date.now();
+ }finally{
+  state.syncing=false;
+  if(state.user){
+   state.page=uiState.page;
+   render();
+   restoreFormState(formState);
+   const q=document.querySelector('#searchFilter'),p=document.querySelector('#periodFilter'),s=document.querySelector('#statusFilter');
+   if(q)q.value=uiState.search;
+   if(p) p.value=uiState.period;
+   if(s) s.value=uiState.status;
+   if(typeof applyFilters==='function')applyFilters();
+   requestAnimationFrame(()=>{
+    const area=document.querySelector('.area');
+    if(area)area.scrollTop=uiState.scroll;
+    else window.scrollTo(0,uiState.scroll);
+   });
+  }
+  if(manual)showToast('Atualização concluída sem perder filtros ou dados digitados.');
+ }
+}
 function clock(){const e=document.querySelector('#clock');if(e)e.textContent=new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
 document.addEventListener('DOMContentLoaded',()=>{document.querySelector('#menuBtn')?.addEventListener('click',()=>{document.querySelector('#sidebar')?.classList.add('open');document.querySelector('#overlay')?.classList.add('show');});document.querySelector('#overlay')?.addEventListener('click',closeMenu);document.querySelector('#profileBtn')?.addEventListener('click',()=>{state.page='perfil';render();});setInterval(clock,1000);clock();if(!restoreSession()){document.querySelector('#login')?.classList.remove('hide');document.querySelector('#app')?.classList.add('hide');}setInterval(()=>refreshData(false),10000);});
 
