@@ -528,3 +528,77 @@ document.addEventListener('click',e=>{
  const b=e.target.closest('.filters .btn');
  if(b&&b.textContent.trim().toLowerCase().includes('filtrar')){e.preventDefault();applyFilters();}
 });
+
+
+/* ===== FILTROS REALMENTE FUNCIONAIS V5 ===== */
+function fxNorm(v){
+ return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function fxStatus(row){
+ const b=row.querySelector('.badge');
+ return fxNorm(b?b.textContent:row.textContent);
+}
+function fxDate(row){
+ const cells=row.cells||[];
+ const candidates=[cells[0]?.textContent,cells[5]?.textContent,cells[6]?.textContent].filter(Boolean).map(x=>String(x).trim());
+ for(const raw of candidates){
+  let m=raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));
+  m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if(m){const d=new Date();d.setHours(+m[1],+m[2],+(m[3]||0),0);return d;}
+ }
+ return null;
+}
+function fxPeriod(row,value){
+ const p=fxNorm(value);
+ if(!p||p==='all'||p==='todos'||p==='todo periodo')return true;
+ const d=fxDate(row);if(!d)return true;
+ const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ if(p==='hoje'||p==='today')return d>=today&&d<=now;
+ if(p==='month'||p==='mes'||p==='este mes')return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
+ const n=parseInt(p,10);
+ return Number.isFinite(n)?d>=new Date(today.getTime()-(n-1)*86400000)&&d<=now:true;
+}
+function fxStatusOK(row,value){
+ const w=fxNorm(value);
+ if(!w||w==='todos'||w==='todos os status')return true;
+ const s=fxStatus(row);
+ if(w==='ok')return s==='ok'||(s.includes(' ok')&&!s.includes('nao ok'));
+ if(w==='nao ok')return s.includes('nao ok');
+ return s.includes(w);
+}
+function applyFilters(){
+ const root=document.querySelector('#dataRows');if(!root)return;
+ const input=document.querySelector('#searchFilter')||document.querySelector('.filters input');
+ const period=document.querySelector('#periodFilter');
+ const status=document.querySelector('#statusFilter');
+ const q=fxNorm(input?.value||''),pv=period?.value||'all',sv=status?.value||'Todos os status';
+ const rows=[...root.querySelectorAll('tr')].filter(r=>r.cells&&r.cells.length);
+ let visible=0;
+ rows.forEach(r=>{
+  const match=(!q||fxNorm(r.textContent).includes(q))&&fxStatusOK(r,sv)&&fxPeriod(r,pv);
+  r.hidden=!match;
+  r.style.display=match?'table-row':'none';
+  if(match)visible++;
+ });
+ const counter=document.querySelector('#filterCount');if(counter)counter.textContent=visible+' de '+rows.length+' registros';
+}
+function filterRows(v){
+ const input=document.querySelector('#searchFilter')||document.querySelector('.filters input');
+ if(input)input.value=String(v??'');
+ applyFilters();
+}
+function clearFilters(){
+ const input=document.querySelector('#searchFilter')||document.querySelector('.filters input');
+ const period=document.querySelector('#periodFilter'),status=document.querySelector('#statusFilter');
+ if(input)input.value='';
+ if(period)period.value='all';
+ if(status)status.value='Todos os status';
+ applyFilters();
+}
+document.addEventListener('input',e=>{
+ if(e.target.matches('#searchFilter,.filters input'))applyFilters();
+},true);
+document.addEventListener('change',e=>{
+ if(e.target.matches('#periodFilter,#statusFilter'))applyFilters();
+},true);
