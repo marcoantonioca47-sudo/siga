@@ -791,3 +791,11 @@ function renderMonthReport(){
     }
   };
 })();
+
+
+/* ===== CORRECAO: PERSISTIR MES SELECIONADO ===== */
+function selectedReportMonth(){
+  const el=document.querySelector('#reportMonthFilter');
+  const saved=localStorage.getItem('siga30_report_month_v1');
+  return el?.value||saved||'all';
+}
