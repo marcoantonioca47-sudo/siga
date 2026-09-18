@@ -225,10 +225,6 @@ function actPage(){
  }).join('');
  return tablePage('Minhas Atividades','Histórico operacional completo, compatível com os dados do SIGA 3.0.',['Data / Hora','Tipo','Referência','Lote','Romaneio','Rota / Destino','Etapa','Status','Prioridade','Operador / Usuário','Filial','Peso','Volume','Ocorrência','Qtd. divergente','Observação'],body);
 }
- const d=rows('atividades');
- const body=d.map(function(r){return '<tr><td>'+dt(r.hora||r.inicio)+'</td><td>'+esc(r.tipo)+'</td><td>'+esc(r.descricao_original||r.descricao)+'</td><td>'+badge(r.status)+'</td></tr>';}).join('');
- return tablePage('Minhas Atividades','Histórico das atividades realizadas.',['Data / Hora','Tipo','Descrição','Status'],body);
-}
 function confPage(){
  const d=rows('conferencias');
  const body=d.map(function(r){return '<tr><td>'+esc(r.operacao)+'</td><td>'+esc(r.referencia)+'</td><td>'+dt(r.hora||r.inicio)+'</td><td>'+badge(r.resultado)+'</td><td>'+esc(r.ocorrencia||'—')+'</td><td>'+esc(r.quantidade_divergente||'—')+'</td><td>'+esc(r.observacao||'—')+'</td></tr>';}).join('');
@@ -275,7 +271,7 @@ function perf(){
  return '<div class="page-title"><h1>Meu Desempenho</h1><p>Indicadores operacionais do usuário.</p></div><div class="performance-kpis"><div class="perf-kpi"><span>Taxa de conformidade</span><strong>'+(total?Math.round(ok/total*100):0)+'%</strong><small>'+ok+' OK de '+total+'</small></div><div class="perf-kpi"><span>Total de operações</span><strong>'+(s.length+c.length+f.length)+'</strong></div><div class="perf-kpi"><span>Atividades</span><strong>'+rows('atividades').length+'</strong></div><div class="perf-kpi"><span>NÃO OK</span><strong>'+bad+'</strong></div></div>';
 }
 function profile(){return '<div class="page-title"><h1>Perfil / Acesso</h1><p>Dados da sua sessão atual.</p></div><div class="panel"><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.role)+' • Filial '+esc(state.user.cd)+'</small></div></div></div>';}
-function admin(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';return '<div class="page-title"><h1>Gestão de Usuários</h1><p>Contas disponíveis no sistema.</p></div><div class="panel"><div class="user-list">'+accountList().map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+'</small></div><span class="badge ok">Ativo</span></div>';}).join('')+'</div></div>';}
+
 
 function render(){
  if(!state.user)return;
