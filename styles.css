@@ -132,3 +132,7 @@ header .header-actions{display:flex;align-items:center;gap:7px;position:relative
 
 /* ===== DATA/HORA: LEITURA VISUAL ===== */
 .date-cell,.time-cell{white-space:nowrap;font-variant-numeric:tabular-nums}.date-cell{font-weight:700;letter-spacing:.1px}.time-cell{font-weight:800}.table th.date-cell,.table th.time-cell{min-width:76px}@media(max-width:700px){.date-cell,.time-cell{white-space:nowrap}.table th,.table td{padding-left:8px;padding-right:8px}}
+
+
+/* ===== DATA + HORA NA MESMA COLUNA ===== */
+.datetime-cell{white-space:nowrap;vertical-align:middle;line-height:1.15;min-width:82px}.datetime-cell span{display:block;font-weight:800;font-size:9px;letter-spacing:.1px}.datetime-cell small{display:block;margin-top:3px;font-size:8px;font-weight:700;color:#8fa7b7;font-variant-numeric:tabular-nums}.datetime-cell small:before{content:'🕐 ';font-size:7px;opacity:.8}@media(max-width:700px){.datetime-cell{min-width:78px}.datetime-cell span{font-size:8px}.datetime-cell small{font-size:7.5px}}
