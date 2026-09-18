@@ -69,7 +69,12 @@ const accounts=[
 function accountList(){
  try{
   const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');
-  if(Array.isArray(raw)&&raw.length)return accounts.concat(raw).filter(function(x,i,a){return a.findIndex(function(y){return norm(y.id)===norm(x.id);})===i;});
+  if(Array.isArray(raw)&&raw.length){
+   const map={};
+   accounts.forEach(function(x){map[norm(x.id)]=x;});
+   raw.forEach(function(x){if(x&&x.id)map[norm(x.id)]=Object.assign({},map[norm(x.id)]||{},x);});
+   return Object.keys(map).map(function(k){return map[k];});
+  }
  }catch(e){}
  return accounts;
 }
@@ -138,8 +143,10 @@ function carPage(){
 }
 function actPage(){
  const d=rows('atividades');
- const body=d.map(function(r){return '<tr><td>'+dt(r.hora||r.inicio)+'</td><td>'+esc(r.tipo)+'</td><td>'+esc(r.descricao_original||r.descricao)+'</td><td>'+badge(r.status)+'</td></tr>';}).join('');
- return tablePage('Minhas Atividades','Histórico das atividades realizadas.',['Data / Hora','Tipo','Descrição','Status'],body);
+ const body=d.map(function(r){
+  return '<tr><td>'+dt(r.hora||r.inicio||r.data_hora||r.created_at)+'</td><td>'+esc(r.tipo||r.tipo_operacao||r.operacao||'—')+'</td><td>'+esc(r.referencia||r.pedido||r.id_operacao||'—')+'</td><td>'+esc(r.lote||r.lote_id||'—')+'</td><td>'+esc(r.romaneio||r.numero_romaneio||'—')+'</td><td>'+esc(r.destino||r.rota||r.rota_destino||'—')+'</td><td>'+esc(r.etapa||r.stage||r.descricao_etapa||'—')+'</td><td>'+badge(r.status||r.resultado)+'</td><td>'+esc(r.prioridade||'—')+'</td><td>'+esc(r.usuario_nome||r.operador||r.conferente||r.usuario_id||'—')+'</td><td>'+esc(r.filial_id||r.filial||r.cd||'CDD')+'</td><td>'+esc(r.peso||r.peso_kg||r.peso_total_kg||'—')+'</td><td>'+esc(r.volumes||r.volume||r.volume_total||'—')+'</td><td>'+esc(r.ocorrencia||'—')+'</td><td>'+esc(r.quantidade_divergente||r.qtd_divergente||'—')+'</td><td>'+esc(r.observacao||r.descricao_original||r.descricao||'—')+'</td></tr>';
+ }).join('');
+ return tablePage('Minhas Atividades','Histórico operacional completo, preparado para receber as mesmas informações do SIGA 3.0.',['Data / Hora','Tipo','Referência','Lote','Romaneio','Rota / Destino','Etapa','Status','Prioridade','Operador / Usuário','Filial','Peso','Volume','Ocorrência','Qtd. divergente','Observação'],body);
 }
 function confPage(){
  const d=rows('conferencias');
@@ -187,7 +194,65 @@ function perf(){
  return '<div class="page-title"><h1>Meu Desempenho</h1><p>Indicadores operacionais do usuário.</p></div><div class="performance-kpis"><div class="perf-kpi"><span>Taxa de conformidade</span><strong>'+(total?Math.round(ok/total*100):0)+'%</strong><small>'+ok+' OK de '+total+'</small></div><div class="perf-kpi"><span>Total de operações</span><strong>'+(s.length+c.length+f.length)+'</strong></div><div class="perf-kpi"><span>Atividades</span><strong>'+rows('atividades').length+'</strong></div><div class="perf-kpi"><span>NÃO OK</span><strong>'+bad+'</strong></div></div>';
 }
 function profile(){return '<div class="page-title"><h1>Perfil / Acesso</h1><p>Dados da sua sessão atual.</p></div><div class="panel"><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.role)+' • Filial '+esc(state.user.cd)+'</small></div></div></div>';}
-function admin(){if(!state.permissions.admin)return '<div class="panel"><h3>Acesso restrito</h3><p>Você não possui permissão para Gestão de Usuários.</p></div>';return '<div class="page-title"><div><h1>Gestão de Usuários</h1><p>Cadastre, edite e defina permissões individualmente para cada tela de informação.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div>'+ '<div class="admin-grid"><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">Cada usuário pode ter um conjunto próprio de telas liberadas.</div></div><span class="badge ok">'+accountList().length+' usuários</span></div><div class="user-list" style="margin-top:12px">'+accountList().map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').split(/\s+/).map(function(x){return x[0];}).join('').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+' • '+esc(u.cd||'CDD')+'</small></div></div>';}).join('')+'</div></div></div>';}
+
+const PERMISSION_DEFS=[
+ ['separacoes','Minhas Separações'],
+ ['carregamentos','Meus Carregamentos'],
+ ['conferencias','Minhas Conferências'],
+ ['atividades','Minhas Atividades'],
+ ['desempenho','Meu Desempenho'],
+ ['detalhes','Detalhes'],
+ ['ocorrencias','Ocorrências'],
+ ['relatorios','Relatórios'],
+ ['perfil','Perfil / Acesso']
+];
+function userStore(){
+ try{const x=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');return Array.isArray(x)?x:[];}catch(e){return [];}
+}
+function saveUserAccount(){
+ const id=norm((document.querySelector('#userEditId')||{}).value||'');
+ const name=(document.querySelector('#userEditName')||{}).value||'';
+ const password=(document.querySelector('#userEditPassword')||{}).value||'';
+ const role=(document.querySelector('#userEditRole')||{}).value||'Operador';
+ const cd=(document.querySelector('#userEditCd')||{}).value||'CDD';
+ if(!id||!name||!password){toast('Preencha usuário, nome e senha.');return;}
+ const permissions={};
+ PERMISSION_DEFS.forEach(function(x){permissions[x[0]]=!!document.querySelector('#perm_'+x[0]&&'#perm_'+x[0]).checked;});
+ permissions.admin=!!document.querySelector('#perm_admin').checked;
+ let list=userStore();
+ const existing=list.find(function(x){return norm(x.id)===id;});
+ const item={id:id,name:name,password:password,role:role,cd:cd,permissions:permissions};
+ if(existing)Object.assign(existing,item);else list.push(item);
+ try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));toast('Usuário salvo com sucesso.');state.page='admin';render();}catch(e){toast('Não foi possível salvar o usuário.');}
+}
+function editUser(id){
+ const u=accountList().find(function(x){return norm(x.id)===norm(id);});
+ if(!u){toast('Usuário não encontrado.');return;}
+ newUserForm(u);
+}
+function deleteUser(id){
+ if(norm(id)===norm(state.user.id)){toast('Não é permitido excluir o usuário em uso.');return;}
+ let list=userStore();
+ list=list.filter(function(x){return norm(x.id)!==norm(id);});
+ try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));toast('Usuário removido.');render();}catch(e){toast('Não foi possível remover o usuário.');}
+}
+window.newUserForm=function(user){
+ const u=user||{id:'',name:'',password:'',role:'Operador',cd:'CDD',permissions:{}};
+ const checks=PERMISSION_DEFS.map(function(x){return '<label class="permission-item"><input type="checkbox" id="perm_'+x[0]+'" '+(u.permissions&&u.permissions[x[0]]?'checked':'')+'><span>'+x[1]+'</span></label>';}).join('');
+ const adminCheck='<label class="permission-item admin-permission"><input type="checkbox" id="perm_admin" '+(u.permissions&&u.permissions.admin?'checked':'')+'><span>Gestão de Usuários (administrador)</span></label>';
+ const panel='<div class="page-title"><div><h1>'+ (user?'Editar usuário':'Novo usuário') +'</h1><p>Defina individualmente quais telas de informação este usuário poderá acessar.</p></div><div class="page-actions"><button class="btn secondary" onclick="state.page=\'admin\';render()">Cancelar</button></div></div>'+
+ '<div class="panel admin-form"><div class="form-grid"><label>Usuário<input id="userEditId" value="'+esc(u.id)+'" '+(user?'readonly':'')+'></label><label>Nome completo<input id="userEditName" value="'+esc(u.name)+'"></label><label>Senha<input id="userEditPassword" type="password" value="'+esc(u.password)+'"></label><label>Perfil<select id="userEditRole"><option '+(u.role==='Operador'?'selected':'')+'>Operador</option><option '+(u.role==='Conferente'?'selected':'')+'>Conferente</option><option '+(u.role==='Supervisor'?'selected':'')+'>Supervisor</option><option '+(u.role==='Administrador'?'selected':'')+'>Administrador</option></select></label><label>Filial / CD<input id="userEditCd" value="'+esc(u.cd||'CDD')+'"></label></div><h3 style="margin-top:22px">Permissões por tela</h3><div class="permission-grid">'+checks+adminCheck+'</div><div class="page-actions" style="margin-top:18px"><button class="btn" onclick="saveUserAccount()">Salvar usuário</button><button class="btn secondary" onclick="state.page=\'admin\';render()">Cancelar</button></div></div>';
+ document.querySelector('#main').innerHTML=panel;
+};
+function admin(){
+ if(!state.permissions.admin)return '<div class="panel"><h3>Acesso restrito</h3><p>Você não possui permissão para Gestão de Usuários.</p></div>';
+ const users=accountList();
+ return '<div class="page-title"><div><h1>Gestão de Usuários</h1><p>Cadastre e edite usuários com permissões individuais para cada tela de informação.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div>'+
+ '<div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">Acesso separado por tela, sem liberar o sistema inteiro automaticamente.</div></div><span class="badge ok">'+users.length+' usuários</span></div>'+
+ '<div class="table-wrap"><table class="table"><thead><tr><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Filial</th><th>Permissões</th><th>Ações</th></tr></thead><tbody>'+
+ users.map(function(u){const p=PERMISSION_DEFS.filter(function(x){return u.permissions&&u.permissions[x[0]];}).length;return '<tr><td>'+esc(u.id)+'</td><td>'+esc(u.name)+'</td><td>'+esc(u.role)+'</td><td>'+esc(u.cd||'CDD')+'</td><td>'+p+'/'+PERMISSION_DEFS.length+(u.permissions&&u.permissions.admin?' + ADM':'')+'</td><td><button class="btn secondary" onclick="editUser(\''+esc(u.id).replace(/'/g,"\\'")+'\')">Editar</button> <button class="btn secondary" onclick="deleteUser(\''+esc(u.id).replace(/'/g,"\\'")+'\')">Excluir</button></td></tr>';}).join('')+
+ '</tbody></table></div></div>';
+}
 function render(){
  if(!state.user)return;
  document.querySelector('#login').classList.add('hide');
