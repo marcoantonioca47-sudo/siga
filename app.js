@@ -235,7 +235,7 @@ async function refreshData(manual=false){
  }
 }
 function clock(){const e=document.querySelector('#clock');if(e)e.textContent=new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});}
-document.addEventListener('DOMContentLoaded',()=>{document.querySelector('#menuBtn')?.addEventListener('click',()=>{document.querySelector('#sidebar')?.classList.add('open');document.querySelector('#overlay')?.classList.add('show');});document.querySelector('#overlay')?.addEventListener('click',closeMenu);document.querySelector('#profileBtn')?.addEventListener('click',()=>{state.page='perfil';render();});setInterval(clock,1000);clock();if(!restoreSession()){document.querySelector('#login')?.classList.remove('hide');document.querySelector('#app')?.classList.add('hide');}setInterval(()=>refreshData(false),10000);});
+document.addEventListener('DOMContentLoaded',()=>{document.querySelector('#menuBtn')?.addEventListener('click',()=>{document.querySelector('#sidebar')?.classList.add('open');document.querySelector('#overlay')?.classList.add('show');});document.querySelector('#overlay')?.addEventListener('click',closeMenu);document.querySelector('#profileBtn')?.addEventListener('click',()=>{state.page='perfil';render();});setInterval(clock,1000);clock();if(!restoreSession()){document.querySelector('#login')?.classList.remove('hide');document.querySelector('#app')?.classList.add('hide');}}});
 
 /* SIGA 3.0 user management patch */
 function navItems(){return [['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['relatorios','▤','Relatórios Operacionais',state.permissions.desempenho],['perfil','●','Perfil / Acesso',true],['admin','⚙','Cadastrar Usuários',state.permissions.admin],['filiais','🏢','Cadastrar Filiais',isAuthor()],['logout','↪','Sair',true]];}
@@ -1130,4 +1130,35 @@ function relatoriosPage(){
   });
   setTimeout(()=>observer.observe(document.body,{childList:true,subtree:true}),300);
   setTimeout(run,100);
+})();
+
+
+/* ===== ATUALIZAÇÃO AUTOMÁTICA SEM RECARREGAR A TELA ===== */
+(function(){
+  let busy=false;
+  window.startAutoSync=function(){
+    if(window.__sigaAutoSync)return;
+    window.__sigaAutoSync=setInterval(async()=>{
+      if(busy||!state.user)return;
+      busy=true;
+      try{
+        const url=(localStorage.getItem(STORAGE_API)||'').trim();
+        if(url){
+          const res=await fetch(url,{cache:'no-store'});
+          if(res.ok){
+            const json=await res.json();
+            portalData={
+              separacoes:Array.isArray(json.separacoes)?json.separacoes:portalData.separacoes,
+              carregamentos:Array.isArray(json.carregamentos)?json.carregamentos:portalData.carregamentos,
+              atividades:Array.isArray(json.atividades)?json.atividades:portalData.atividades,
+              conferencias:Array.isArray(json.conferencias)?json.conferencias:portalData.conferencias
+            };
+            saveData();
+          }
+        }
+        state.lastSync=Date.now();
+      }catch(e){}finally{busy=false;}
+    },10000);
+  };
+  document.addEventListener('DOMContentLoaded',()=>startAutoSync());
 })();
