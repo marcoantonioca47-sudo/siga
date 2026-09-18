@@ -124,7 +124,7 @@ function updateUI(){
 }
 
 function tablePage(title,sub,heads,body){
- return '<div class="page-title"><h1>'+esc(title)+'</h1><p>'+esc(sub)+'</p></div><div class="panel"><div class="filters"><input id="searchFilter" placeholder="Pesquisar..." oninput="filterRows(this.value)"><select id="statusFilter" onchange="applyFilters()"><option>Todos os status</option><option>Finalizada</option><option>Finalizado</option><option>Em andamento</option><option>OK</option><option>NÃO OK</option><option>Pendente</option></select></div><div class="table-wrap"><table class="table"><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody id="dataRows">'+(body||'<tr><td colspan="20" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div></div>';
+ return '<div class="page-title"><div><h1>'+esc(title)+'</h1><p>'+esc(sub)+'</p></div><div class="page-actions"><button class="btn secondary" onclick="exportCurrentCSV()">⇩ CSV</button><button class="btn secondary" onclick="printCurrent()">🖨 Imprimir</button></div></div><div class="panel"><div class="filters"><input id="searchFilter" placeholder="Pesquisar por lote, pedido, placa, destino..." oninput="filterRows(this.value)"><select id="statusFilter" onchange="applyFilters()"><option>Todos os status</option><option>Finalizada</option><option>Finalizado</option><option>Em andamento</option><option>OK</option><option>NÃO OK</option><option>Pendente</option></select></div><div class="table-wrap"><table class="table"><thead><tr>'+heads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr></thead><tbody id="dataRows">'+(body||'<tr><td colspan="20" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div></div>';
 }
 function dt(v){if(!v)return'—';return esc(String(v));}
 function sepPage(){
@@ -166,6 +166,16 @@ function refreshDashboard(){render();toast('Painel atualizado.');}
 function goPage(p){if(!state.permissions[p]&&p!=='home'&&p!=='perfil'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();}
 function closeMobileMenu(){const a=document.querySelector('aside');if(a)a.classList.remove('open');const o=document.querySelector('#menuOverlay');if(o)o.classList.remove('show');}
 window.refreshDashboard=refreshDashboard;window.goPage=goPage;window.closeMobileMenu=closeMobileMenu;
+
+function csvEscape(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}
+function exportCurrentCSV(){
+ const table=document.querySelector('.table'); if(!table){toast('Abra uma tabela para exportar.');return;}
+ const lines=[...table.querySelectorAll('tr')].map(function(tr){return [...tr.children].map(function(c){return csvEscape(c.innerText);}).join(';');});
+ const blob=new Blob(['\\ufeff'+lines.join('\\n')],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='siga-'+state.page+'-'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+}
+function printCurrent(){window.print();}
+window.exportCurrentCSV=exportCurrentCSV;window.printCurrent=printCurrent;
 
 function perf(){
  const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias');
