@@ -602,3 +602,38 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
  if(e.target.matches('#periodFilter,#statusFilter'))applyFilters();
 },true);
+
+
+/* ===== FILTROS V6 DEFINITIVOS ===== */
+(function(){
+ const N=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ function C(){const root=document.getElementById('dataRows'),box=document.querySelector('.filters');return root&&box?{root,input:box.querySelector('input'),period:box.querySelector('#periodFilter'),status:box.querySelector('#statusFilter')}:null}
+ function D(row,key){
+  key=N(key);if(!key||key==='all'||key==='todos'||key==='todo periodo')return true;
+  const cells=[...row.cells].map(x=>String(x.textContent||'').trim());let d=null;
+  for(const x of cells){let m=x.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);if(m){d=new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));break}}
+  if(!d)for(const x of cells){let m=x.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);if(m){d=new Date();d.setHours(+m[1],+m[2],+(m[3]||0),0);break}}
+  if(!d)return true;
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(key==='hoje'||key==='today')return d>=today&&d<=now;
+  if(key==='month'||key==='mes'||key==='este mes')return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
+  const days=parseInt(key,10);return Number.isFinite(days)?d>=new Date(today.getTime()-(days-1)*86400000)&&d<=now:true;
+ }
+ function S(row,w){
+  w=N(w);if(!w||w==='todos'||w==='todos os status')return true;
+  const b=row.querySelector('.badge'),s=N(b?b.textContent:row.textContent);
+  if(w==='ok')return s==='ok';
+  if(w==='nao ok')return s.includes('nao ok');
+  return s.includes(w);
+ }
+ function RUN(){
+  const c=C();if(!c)return;
+  const q=N(c.input?.value||''),rows=[...c.root.children].filter(x=>x.tagName==='TR');let v=0;
+  rows.forEach(r=>{const ok=(!q||N(r.textContent).includes(q))&&S(r,c.status?.value||'Todos os status')&&D(r,c.period?.value||'all');r.hidden=!ok;r.style.display=ok?'table-row':'none';if(ok)v++});
+  const z=document.getElementById('filterCount');if(z)z.textContent=v+' de '+rows.length+' registros';
+ }
+ function CLEAR(){const c=C();if(!c)return;if(c.input)c.input.value='';if(c.period)c.period.value='all';if(c.status)c.status.value='Todos os status';RUN()}
+ window.applyFilters=RUN;
+ window.filterRows=function(v){const c=C();if(c?.input)c.input.value=String(v??'');RUN()};
+ window.clearFilters=CLEAR;
+})();
