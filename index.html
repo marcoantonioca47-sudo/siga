@@ -35,11 +35,16 @@
     <div class="bottom">SIGA 3.0 • Sistema Integrado de Gestão de Armazém <b>Desenvolvido por MARCO</b></div>
   </section>
 </div>
-<script src="app.js?v=20260918c"></script>
 <script>
-document.addEventListener("DOMContentLoaded",function(){
-  var b=document.getElementById("loginBtn");
-  if(b)b.addEventListener("click",function(e){e.preventDefault();if(typeof window.login==="function")window.login();else{var m=document.getElementById("loginmsg");if(m)m.textContent="Erro ao carregar o sistema. Atualize a página."; }});
-});
+window.login=function(){
+  var u=document.getElementById("u"),p=document.getElementById("pw"),m=document.getElementById("loginmsg"),login=document.getElementById("login"),app=document.getElementById("app");
+  if(u&&p&&u.value==="01022005"&&p.value==="01022005"){
+    localStorage.setItem("siga30_portal_user_v3",JSON.stringify({id:"marco",nome:"Marco",login:"01022005",perfil:"Autor / Administrador",filial:"CDD"}));
+    if(login)login.style.display="none";
+    if(app)app.classList.remove("hide");
+    if(m)m.textContent="";
+  }else if(m)m.textContent="Usuário ou senha inválidos.";
+};
 </script>
+<script src="app.js?v=20260918d"></script>
 </body></html>
