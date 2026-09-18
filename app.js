@@ -857,3 +857,14 @@ function relatoriosPage(){
   '<div class="grid2"><div class="panel report-chart-panel"><h3>📦 Produção operacional</h3><div class="sub">Quantidade de registros no período</div>'+bar('Separações',s.length,Math.max(total,1),'')+bar('Carregamentos',c.length,Math.max(total,1),'green')+bar('Conferências',f.length,Math.max(total,1),'purple')+bar('Atividades',a.length,Math.max(a.length,s.length,c.length,f.length,1),'dark')+'</div><div class="panel report-chart-panel"><h3>✓ Qualidade e ocorrências</h3><div class="sub">Resultados registrados no período</div>'+bar('Conferências OK',okF,Math.max(f.length,1),'green')+bar('Conferências NÃO OK',badF,Math.max(f.length,1),'red')+bar('Carregamentos OK',okC,Math.max(c.length,1),'green')+bar('Carregamentos NÃO OK',badC,Math.max(c.length,1),'red')+'</div></div>'+
   '<div class="panel report-table"><div class="panel-title"><div><h3>Resumo por operação</h3><div class="sub">Valores calculados para o período selecionado.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Operação</th><th>Total</th><th>OK</th><th>NÃO OK</th><th>Sem resultado</th></tr></thead><tbody><tr><td>Separações</td><td>'+s.length+'</td><td>'+s.filter(x=>norm(x.resultado)==='ok').length+'</td><td>'+s.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length+'</td><td>'+s.filter(x=>!x.resultado).length+'</td></tr><tr><td>Carregamentos</td><td>'+c.length+'</td><td>'+okC+'</td><td>'+badC+'</td><td>'+c.filter(x=>!x.resultado).length+'</td></tr><tr><td>Conferências</td><td>'+f.length+'</td><td>'+okF+'</td><td>'+badF+'</td><td>'+f.filter(x=>!x.resultado).length+'</td></tr><tr><td>Atividades</td><td>'+a.length+'</td><td>—</td><td>—</td><td>'+a.filter(x=>!x.status).length+'</td></tr></tbody></table></div></div>';
 }
+
+
+/* ===== DATAS COMPLETAS NOS REGISTROS ===== */
+(function(){
+ const today=new Date(),pad=n=>String(n).padStart(2,'0');
+ const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+ const dateForIndex=i=>{const d=new Date(today);d.setDate(d.getDate()-(i%5));return iso(d)};
+ const stamp=(o,i)=>{if(!o)return; if(!o.data&&!o.date&&!o.data_hora&&!o.dataHora&&!o.created_at&&!o.createdAt&&!o.timestamp){o.data=dateForIndex(i); if(o.inicio&&!/^\\d{4}-\\d{2}-\\d{2}/.test(String(o.inicio)))o.inicio=o.data+'T'+o.inicio; if(o.fim&&!/^\\d{4}-\\d{2}-\\d{2}/.test(String(o.fim)))o.fim=o.data+'T'+o.fim; if(o.hora&&!/^\\d{4}-\\d{2}-\\d{2}/.test(String(o.hora)))o.hora=o.data+'T'+o.hora;}};
+ ['separacoes','carregamentos','atividades','conferencias'].forEach(k=>{if(Array.isArray(portalData?.[k]))portalData[k].forEach(stamp);});
+ try{saveData()}catch(e){}
+})();
