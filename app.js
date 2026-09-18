@@ -159,7 +159,26 @@ function perf(){
  return '<div class="page-title"><h1>Meu Desempenho</h1><p>Indicadores operacionais do usuário.</p></div><div class="performance-kpis"><div class="perf-kpi"><span>Taxa de conformidade</span><strong>'+(total?Math.round(ok/total*100):0)+'%</strong><small>'+ok+' OK de '+total+'</small></div><div class="perf-kpi"><span>Total de operações</span><strong>'+(s.length+c.length+f.length)+'</strong></div><div class="perf-kpi"><span>Atividades</span><strong>'+rows('atividades').length+'</strong></div><div class="perf-kpi"><span>NÃO OK</span><strong>'+bad+'</strong></div></div>';
 }
 function profile(){return '<div class="page-title"><h1>Perfil / Acesso</h1><p>Dados da sua sessão atual.</p></div><div class="panel"><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.role)+' • Filial '+esc(state.user.cd)+'</small></div></div></div>';}
-function admin(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';return '<div class="page-title"><h1>Gestão de Usuários</h1><p>Contas disponíveis no sistema.</p></div><div class="panel"><div class="user-list">'+accountList().map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+'</small></div><span class="badge ok">Ativo</span></div>';}).join('')+'</div></div>';}
+function admin(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';const us=accountList();return '<div class="page-title"><h1>Gestão de Usuários</h1><p>Crie, edite e gerencie os acessos ao SIGA.</p></div><div class="panel"><div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn" onclick="openUserForm()">+ Criar usuário</button></div><div class="user-list">'+us.map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div style="flex:1"><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+' • Filial '+esc(u.cd||'CDD')+'</small></div><span class="badge ok">Ativo</span><button class="btn secondary" onclick="openUserForm(\''+esc(u.id)+'\')">Editar</button></div>';}).join('')+'</div></div>';}
+
+window.openUserForm=function(id){
+ if(!isAdmin())return;
+ const u=id?accountList().find(function(x){return norm(x.id)===norm(id);}):null;
+ if(id&&!u)return;
+ const main=document.querySelector('#main');
+ main.innerHTML='<div class="page-title"><h1>'+(u?'Editar usuário':'Criar usuário')+'</h1><p>Defina os dados e permissões de acesso.</p></div><div class="panel"><form id="userForm" onsubmit="saveUser(event)"><div class="form-grid"><label>Usuário<input id="usrId" required '+(u?'readonly':'')+' value="'+esc(u?u.id:'')+'"></label><label>Nome<input id="usrName" required value="'+esc(u?u.name:'')+'"></label><label>Senha<input id="usrPass" type="password" '+(u?'placeholder="Deixe em branco para manter a atual"':'required')+' value=""></label><label>Perfil<select id="usrRole"><option '+(u&&u.role==='Operador'?'selected':'')+'>Operador</option><option '+(u&&u.role==='Administrador'?'selected':'')+'>Administrador</option></select></label><label>Filial<input id="usrCd" value="'+esc(u&&u.cd||'CDD')+'"></label></div><h3>Permissões</h3><div class="permission-grid">'+[['separacoes','Minhas Separações'],['carregamentos','Meus Carregamentos'],['conferencias','Minhas Conferências'],['atividades','Minhas Atividades'],['desempenho','Meu Desempenho']].map(function(x){return '<label><input type="checkbox" id="perm_'+x[0]+'" '+(u&&u.permissions&&u.permissions[x[0]]?'checked':'')+'>'+x[1]+'</label>';}).join('')+'</div><div style="display:flex;gap:10px;margin-top:20px"><button class="btn" type="submit">Salvar usuário</button><button class="btn secondary" type="button" onclick="state.page=\'admin\';render()">Cancelar</button></div></form></div>';
+};
+window.saveUser=function(ev){
+ ev.preventDefault();if(!isAdmin())return;
+ const id=norm(document.querySelector('#usrId').value),name=document.querySelector('#usrName').value.trim(),pass=document.querySelector('#usrPass').value,role=document.querySelector('#usrRole').value,cd=document.querySelector('#usrCd').value.trim()||'CDD';
+ if(!id||!name)return;
+ const list=accountList();let u=list.find(function(x){return norm(x.id)===id;});
+ if(!u){u={id:id,name:name,password:pass,role:role,cd:cd,permissions:{}};list.push(u);}else{u.name=name;u.role=role;u.cd=cd;if(pass)u.password=pass;}
+ ['separacoes','carregamentos','conferencias','atividades','desempenho'].forEach(function(k){u.permissions=u.permissions||{};u.permissions[k]=!!document.querySelector('#perm_'+k).checked;});
+ if(/administrador/i.test(role)){u.permissions={separacoes:true,carregamentos:true,conferencias:true,atividades:true,desempenho:true,admin:true};}
+ try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));}catch(e){toast('Não foi possível salvar o usuário.');return;}
+ toast('Usuário salvo com sucesso.');state.page='admin';render();
+};
 
 function render(){
  if(!state.user)return;
