@@ -9,7 +9,7 @@ const ACCOUNT_STORE='siga30_accounts_v4';
 const state={
  user:null,
  page:'home',
- permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,detalhes:false,ocorrencias:false,relatorios:false,perfil:true,admin:false}
+ permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}
 };
 
 const demo={
@@ -70,16 +70,14 @@ const accounts=[
 function accountList(){
  try{
   const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');
-  const map={};
-  accounts.forEach(function(x){map[norm(x.id)]=Object.assign({},x,{permissions:Object.assign({},x.permissions||{})});});
-  if(Array.isArray(raw))raw.forEach(function(x){if(x&&x.id){const k=norm(x.id);map[k]=Object.assign({},map[k]||{},x,{permissions:Object.assign({},(map[k]||{}).permissions||{},x.permissions||{})});}});
-  return Object.keys(map).map(function(k){return map[k];});
- }catch(e){return accounts;}
+  if(Array.isArray(raw)&&raw.length)return accounts.concat(raw).filter(function(x,i,a){return a.findIndex(function(y){return norm(y.id)===norm(x.id);})===i;});
+ }catch(e){}
+ return accounts;
 }
 
 function applyUser(u){
  state.user={id:u.id,usuario:u.id,username:u.id,name:u.name,role:u.role,cd:u.cd||'CDD',filial_id:u.cd||'CDD',avatar:u.name.split(/\s+/).map(function(x){return x[0];}).join('').slice(0,2).toUpperCase()};
- state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,detalhes:false,ocorrencias:false,relatorios:false,perfil:true,admin:false};
+ state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,admin:false};
  Object.assign(state.permissions,u.permissions||{});
  if(/autor|administrador/i.test(state.user.role))Object.keys(state.permissions).forEach(function(k){state.permissions[k]=true;});
  try{localStorage.setItem(STORAGE_USER,JSON.stringify(state.user));}catch(e){}
@@ -190,30 +188,7 @@ function perf(){
  return '<div class="page-title"><h1>Meu Desempenho</h1><p>Indicadores operacionais do usuário.</p></div><div class="performance-kpis"><div class="perf-kpi"><span>Taxa de conformidade</span><strong>'+(total?Math.round(ok/total*100):0)+'%</strong><small>'+ok+' OK de '+total+'</small></div><div class="perf-kpi"><span>Total de operações</span><strong>'+(s.length+c.length+f.length)+'</strong></div><div class="perf-kpi"><span>Atividades</span><strong>'+rows('atividades').length+'</strong></div><div class="perf-kpi"><span>NÃO OK</span><strong>'+bad+'</strong></div></div>';
 }
 function profile(){return '<div class="page-title"><h1>Perfil / Acesso</h1><p>Dados da sua sessão atual.</p></div><div class="panel"><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.role)+' • Filial '+esc(state.user.cd)+'</small></div></div></div>';}
-const PERMISSION_DEFS=[['separacoes','Separação'],['carregamentos','Carregamento'],['conferencias','Conferência'],['atividades','Atividades'],['desempenho','Desempenho'],['detalhes','Detalhes'],['ocorrencias','Ocorrências'],['relatorios','Relatórios'],['perfil','Perfil / Acesso']];
-function userStore(){try{const x=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');return Array.isArray(x)?x:[];}catch(e){return [];}}
-function saveUserAccount(){
- const id=norm((document.querySelector('#userEditId')||{}).value||''),name=(document.querySelector('#userEditName')||{}).value||'',password=(document.querySelector('#userEditPassword')||{}).value||'',role=(document.querySelector('#userEditRole')||{}).value||'Operador',cd=(document.querySelector('#userEditCd')||{}).value||'CDD';
- if(!id||!name||!password){toast('Preencha usuário, nome e senha.');return;}
- const permissions={};PERMISSION_DEFS.forEach(function(p){const el=document.querySelector('#perm_'+p[0]);permissions[p[0]]=!!(el&&el.checked);});const adm=document.querySelector('#perm_admin');permissions.admin=!!(adm&&adm.checked);
- let list=userStore(),idx=list.findIndex(function(x){return norm(x.id)===id;});const item={id:id,name:name,password:password,role:role,cd:cd,permissions:permissions};
- if(idx>=0)list[idx]=item;else list.push(item);
- try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));toast('Usuário salvo com sucesso.');state.page='admin';render();}catch(e){toast('Não foi possível salvar o usuário.');}
-}
-function editUser(id){const u=accountList().find(function(x){return norm(x.id)===norm(id);});if(!u){toast('Usuário não encontrado.');return;}window.newUserForm(u);}
-function deleteUser(id){if(norm(id)===norm(state.user.id)){toast('Não é possível excluir o usuário em uso.');return;}const list=userStore().filter(function(x){return norm(x.id)!==norm(id);});try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));toast('Usuário removido.');render();}catch(e){toast('Não foi possível remover o usuário.');}}
-window.newUserForm=function(user){
- const u=user||{id:'',name:'',password:'',role:'Operador',cd:'CDD',permissions:{}};
- const checks=PERMISSION_DEFS.map(function(p){return '<label class="permission-item"><input type="checkbox" id="perm_'+p[0]+'" '+(u.permissions&&u.permissions[p[0]]?'checked':'')+'><span>'+p[1]+'</span></label>';}).join('');
- const adminCheck='<label class="permission-item admin-permission"><input type="checkbox" id="perm_admin" '+(u.permissions&&u.permissions.admin?'checked':'')+'><span>Administrador / Gestão de Usuários</span></label>';
- document.querySelector('#main').innerHTML='<div class="page-title"><div><h1>'+(user?'Editar usuário':'Novo usuário')+'</h1><p>Defina as permissões de acesso de cada tela.</p></div><div class="page-actions"><button class="btn secondary" onclick="state.page=\'admin\';render()">Voltar</button></div></div>'+
- '<div class="panel admin-form"><div class="form-grid"><label>Usuário<input id="userEditId" value="'+esc(u.id)+'" '+(user?'readonly':'')+'></label><label>Nome completo<input id="userEditName" value="'+esc(u.name)+'"></label><label>Senha<input id="userEditPassword" type="password" value="'+esc(u.password)+'"></label><label>Perfil<select id="userEditRole"><option value="Operador" '+(u.role==='Operador'?'selected':'')+'>Operador</option><option value="Conferente" '+(u.role==='Conferente'?'selected':'')+'>Conferente</option><option value="Supervisor" '+(u.role==='Supervisor'?'selected':'')+'>Supervisor</option><option value="Administrador" '+(u.role==='Administrador'?'selected':'')+'>Administrador</option><option value="Autor / Administrador" '+(u.role==='Autor / Administrador'?'selected':'')+'>Autor / Administrador</option></select></label><label>Filial / CD<input id="userEditCd" value="'+esc(u.cd||'CDD')+'"></label></div><h3 style="margin-top:22px">Permissões</h3><div class="permission-grid">'+checks+adminCheck+'</div><div class="page-actions" style="margin-top:18px"><button class="btn" onclick="saveUserAccount()">Salvar usuário</button><button class="btn secondary" onclick="state.page=\'admin\';render()">Cancelar</button></div></div>';
-};
-function admin(){
- if(!state.permissions.admin)return '<div class="panel"><h3>Acesso restrito</h3><p>Você não possui permissão de administrador.</p></div>';
- const users=accountList();
- return '<div class="page-title"><div><h1>Administrador</h1><p>Gestão de usuários, permissões e acesso ao SIGA.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Gestão de Usuários</h3><div class="sub">Edite usuários e selecione exatamente quais módulos cada um pode acessar.</div></div><span class="badge ok">'+users.length+' usuários</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Usuário</th><th>Nome</th><th>Perfil</th><th>Filial</th><th>Permissões</th><th>Ações</th></tr></thead><tbody>'+users.map(function(u){const count=PERMISSION_DEFS.filter(function(p){return u.permissions&&u.permissions[p[0]];}).length;const eid=esc(u.id).replace(/'/g,"\\'");return '<tr><td>'+esc(u.id)+'</td><td>'+esc(u.name)+'</td><td>'+esc(u.role)+'</td><td>'+esc(u.cd||'CDD')+'</td><td>'+count+'/'+PERMISSION_DEFS.length+(u.permissions&&u.permissions.admin?' + ADM':'')+'</td><td><button class="btn secondary" onclick="editUser(\''+eid+'\')">Editar</button> <button class="btn secondary" onclick="deleteUser(\''+eid+'\')">Excluir</button></td></tr>';}).join('')+'</tbody></table></div></div>';
-}
+function admin(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';return '<div class="page-title"><h1>Gestão de Usuários</h1><p>Contas disponíveis no sistema.</p></div><div class="panel"><div class="user-list">'+accountList().map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+'</small></div><span class="badge ok">Ativo</span></div>';}).join('')+'</div></div>';}
 
 function render(){
  if(!state.user)return;
