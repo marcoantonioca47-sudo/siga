@@ -15,7 +15,7 @@
     <label>Usuário<input id="u" autocomplete="username" placeholder="Digite seu usuário"></label>
     <label>Senha<input id="pw" type="password" autocomplete="current-password" placeholder="Digite sua senha" onkeydown="if(event.key==='Enter')login()"></label>
     <label>Filial<select id="fil"><option value="CDD">CDD</option></select></label>
-    <button id="loginBtn" type="button">Entrar</button>
+    <button id="loginBtn" type="button" onclick="window.login()">Entrar</button>
     <div id="loginmsg" class="loginmsg"></div>
     <footer><span>⌖ CDD</span><b>Desenvolvido por MARCO</b></footer>
   </div>
