@@ -148,9 +148,11 @@ function carregamentosPage(){
  return myTablePage('Meus Carregamentos','Consulte e filtre somente os carregamentos vinculados ao seu usuário.',['Romaneio','Rota/Destino','Motorista','Placa','Peso','Volumes','Início','Fim','Resultado'],rows,'carregamentos');
 }
 function myTablePage(title,sub,heads,rows,type){
+ const ph=type==='separacoes'?'Pesquisar lote, pedido, destino...':'Pesquisar romaneio, motorista, placa, destino...';
  return '<div class="page-title"><h1>'+esc(title)+'</h1><p>'+esc(sub)+'</p></div>'+
  '<div class="panel my-filter-panel" data-filter-type="'+type+'"><div class="filters my-filters">'+
- '<input id="mySearchFilter" type="search" placeholder="'+(type==='separacoes'?'Pesquisar lote, pedido, destino...':'Pesquisar romaneio, motorista, placa, destino...')+'" autocomplete="off">'+
+ '<input id="mySearchFilter" type="search" placeholder="'+ph+'" autocomplete="off">'+
+ '<select id="myPeriodFilter"><option value="all">Todo período</option><option value="today">Hoje</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="month">Este mês</option></select>'+
  '<select id="myStatusFilter"><option value="">Todos os status</option><option value="finalizada">Finalizada</option><option value="finalizado">Finalizado</option><option value="andamento">Em andamento</option><option value="ok">OK</option><option value="nao ok">NÃO OK</option><option value="pendente">Pendente</option></select>'+
  '<button type="button" class="btn" id="myApplyFilter">Filtrar</button><button type="button" class="btn secondary" id="myClearFilter">Limpar</button>'+
  '<span id="myFilterCount" class="filter-count"></span></div>'+
@@ -184,6 +186,9 @@ async function refreshData(manual=false){
   search:document.querySelector('#searchFilter')?.value||'',
   period:document.querySelector('#periodFilter')?.value||'all',
   status:document.querySelector('#statusFilter')?.value||'Todos os status',
+  mySearch:document.querySelector('#mySearchFilter')?.value||'',
+  myStatus:document.querySelector('#myStatusFilter')?.value||'',
+  myPeriod:document.querySelector('#myPeriodFilter')?.value||'all',
   scroll:document.querySelector('.area')?.scrollTop||window.scrollY||0
  };
  try{
@@ -214,7 +219,12 @@ async function refreshData(manual=false){
    if(q)q.value=uiState.search;
    if(p) p.value=uiState.period;
    if(s) s.value=uiState.status;
-   if(typeof applyFilters==='function')applyFilters();
+   const mq=document.querySelector('#mySearchFilter'),ms=document.querySelector('#myStatusFilter'),mp=document.querySelector('#myPeriodFilter');
+   if(mq)mq.value=uiState.mySearch||'';
+   if(ms)ms.value=uiState.myStatus||'';
+   if(mp)mp.value=uiState.myPeriod||'all';
+   if(document.querySelector('.my-filter-panel')&&typeof applyMyFilters==='function')applyMyFilters();
+   else if(typeof applyFilters==='function')applyFilters();
    requestAnimationFrame(()=>{
     const area=document.querySelector('.area');
     if(area)area.scrollTop=uiState.scroll;
@@ -660,40 +670,39 @@ document.addEventListener('change',e=>{
 /* ===== FILTROS NOVOS - MINHAS SEPARACOES / MEUS CARREGAMENTOS ===== */
 (function(){
  const N=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ function dateFromRow(row){
+  const vals=[row.dataset.date,...[...row.cells].map(x=>x.textContent.trim())];
+  for(const x of vals){const m=x.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));}
+  for(const x of vals){const m=x.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);if(m){const d=new Date();d.setHours(+m[1],+m[2],+(m[3]||0),0);return d;}}
+  return null;
+ }
+ function periodOK(row,key){
+  key=N(key);if(!key||key==='all')return true;
+  const d=dateFromRow(row);if(!d)return true;
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(key==='today')return d>=today&&d<=now;
+  if(key==='month')return d.getFullYear()===today.getFullYear()&&d.getMonth()===today.getMonth();
+  const days=Number(key);return Number.isFinite(days)?d>=new Date(today.getTime()-(days-1)*86400000)&&d<=now:true;
+ }
  function apply(){
-   const panel=document.querySelector('.my-filter-panel');if(!panel)return;
-   const q=N(panel.querySelector('#mySearchFilter')?.value||'');
-   const st=N(panel.querySelector('#myStatusFilter')?.value||'');
-   const rows=[...panel.querySelectorAll('#myDataRows > tr')].filter(r=>r.cells?.length);
-   let count=0;
-   rows.forEach(r=>{
-     const text=N(r.dataset.search||r.textContent);
-     const status=N(r.dataset.status||'');
-     let ok=!q||text.includes(q);
-     if(ok&&st){
-       if(st==='ok')ok=status==='ok';
-       else if(st==='nao ok')ok=status.includes('nao ok');
-       else if(st==='andamento')ok=status.includes('andamento');
-       else ok=status.includes(st);
-     }
-     r.hidden=!ok;
-     r.style.display=ok?'table-row':'none';
-     if(ok)count++;
-   });
-   const counter=panel.querySelector('#myFilterCount');
-   if(counter)counter.textContent=count+' de '+rows.length+' registros';
+  const p=document.querySelector('.my-filter-panel');if(!p)return;
+  const q=N(p.querySelector('#mySearchFilter')?.value),st=N(p.querySelector('#myStatusFilter')?.value),per=p.querySelector('#myPeriodFilter')?.value||'all';
+  const rows=[...p.querySelectorAll('#myDataRows > tr')].filter(r=>r.cells?.length);let count=0;
+  rows.forEach(r=>{
+   const text=N(r.dataset.search||r.textContent),status=N(r.dataset.status||'');
+   let ok=!q||text.includes(q);
+   if(ok&&st)ok=st==='ok'?status==='ok':st==='nao ok'?status.includes('nao ok'):status.includes(st);
+   if(ok)ok=periodOK(r,per);
+   r.hidden=!ok;r.style.display=ok?'':'none';if(ok)count++;
+  });
+  const n=p.querySelector('#myFilterCount');if(n)n.textContent=count+' de '+rows.length+' registros';
  }
  function clear(){
-   const p=document.querySelector('.my-filter-panel');if(!p)return;
-   const q=p.querySelector('#mySearchFilter'),s=p.querySelector('#myStatusFilter');
-   if(q)q.value='';if(s)s.value='';apply();
+  const p=document.querySelector('.my-filter-panel');if(!p)return;
+  p.querySelector('#mySearchFilter').value='';p.querySelector('#myStatusFilter').value='';p.querySelector('#myPeriodFilter').value='all';apply();
  }
- document.addEventListener('click',e=>{
-   if(e.target?.id==='myApplyFilter'){e.preventDefault();apply();}
-   if(e.target?.id==='myClearFilter'){e.preventDefault();clear();}
- });
- document.addEventListener('input',e=>{if(e.target?.id==='mySearchFilter')apply();});
- document.addEventListener('change',e=>{if(e.target?.id==='myStatusFilter')apply();});
- window.applyMyFilters=apply;
- window.clearMyFilters=clear;
+ document.addEventListener('click',e=>{if(e.target.closest('#myApplyFilter')){e.preventDefault();apply();}if(e.target.closest('#myClearFilter')){e.preventDefault();clear();}});
+ document.addEventListener('input',e=>{if(e.target.id==='mySearchFilter')apply();});
+ document.addEventListener('change',e=>{if(e.target.id==='myStatusFilter'||e.target.id==='myPeriodFilter')apply();});
+ window.applyMyFilters=apply;window.clearMyFilters=clear;
 })();
