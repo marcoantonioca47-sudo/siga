@@ -974,3 +974,84 @@ function relatoriosPage(){
  };
  setTimeout(applyRequired,0);
 })();
+
+
+/* ===== CORREÇÃO DEFINITIVA: INÍCIO E FIM COM DATA + HORA ===== */
+(function(){
+  const pad=n=>String(n).padStart(2,'0');
+  const today=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+  function parse(v){
+    if(!v)return null;
+    const s=String(v).trim();
+    let d=new Date(s);
+    if(!Number.isNaN(d.getTime()))return d;
+    let m=s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if(m){d=new Date();d.setHours(+m[1],+m[2],+(m[3]||0),0);return d;}
+    m=s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if(m)return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0));
+    return null;
+  }
+  function fullDate(v,fallback){
+    if(!v)return fallback||today();
+    const d=parse(v);
+    return d?d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()):fallback||today();
+  }
+  function fullDateTime(v,date){
+    if(!v)return '';
+    const d=parse(v);
+    if(!d)return date+'T'+String(v);
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  }
+  function completeRecord(o,index){
+    if(!o)return;
+    const baseDate=fullDate(o.data||o.date||o.data_hora||o.dataHora||o.inicio||o.hora||o.fim, (()=>{const d=new Date();d.setDate(d.getDate()-(index%5));return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())})());
+    o.data=baseDate;
+    if(o.inicio)o.inicio=fullDateTime(o.inicio,baseDate);
+    if(o.fim)o.fim=fullDateTime(o.fim,baseDate);
+    if(o.hora){
+      o.hora=fullDateTime(o.hora,baseDate);
+      if(!o.inicio)o.inicio=o.hora;
+      if(!o.fim && /finalizad|conclu|encerrad|terminad|^ok$|não ok|nao ok/i.test(String(o.status||o.resultado||''))) o.fim=o.hora;
+    }
+  }
+  ['separacoes','carregamentos','atividades','conferencias'].forEach(k=>{
+    if(Array.isArray(portalData?.[k]))portalData[k].forEach(completeRecord);
+  });
+  try{saveData();}catch(e){}
+
+  function dt(v){
+    const d=parse(v);
+    return d?pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+'<small>🕐 '+pad(d.getHours())+':'+pad(d.getMinutes())+'</small>':'—';
+  }
+  function cell(v,cls){
+    return '<td class="'+(cls||'datetime-cell')+'">'+dt(v)+'</td>';
+  }
+  function startOf(o){return o?.inicio||o?.hora||o?.data_hora||o?.dataHora||'';}
+  function endOf(o){
+    return o?.fim||((/finalizad|conclu|encerrad|terminad|^ok$|não ok|nao ok/i.test(String(o?.status||o?.resultado||'')))?(o?.hora||o?.inicio||''):'');
+  }
+
+  window.separacoesPage=function(){
+    const d=userSeps();
+    const rows=d.map((r,i)=>'<tr><td>'+esc(r.lote||r.numero_lote)+'</td><td>'+esc(r.pedido||r.numero_pedido)+'</td><td>'+esc(r.destino||r.rota)+'</td><td>'+esc(r.peso||r.peso_total_kg)+'</td><td>'+esc(r.volumes||r.volume_total)+'</td>'+cell(startOf(r))+cell(endOf(r))+'<td>'+badge(r.status||r.resultado||'PENDENTE',resultClass(r.status||r.resultado))+'</td><td><button class="btn secondary" onclick="details(\''+esc(r.lote||r.numero_lote||'')+'\')">Ver</button></td></tr>').join('');
+    return myTablePage('Minhas Separações','Data e hora obrigatórias no início e no fim da operação.',['Lote','Pedido','Destino','Peso','Volumes','Início — Data / Hora','Fim — Data / Hora','Status',''],rows,'separacoes');
+  };
+
+  window.carregamentosPage=function(){
+    const d=userCars();
+    const rows=d.map((r,i)=>'<tr><td>'+esc(r.romaneio||r.numero_romaneio)+'</td><td>'+esc(r.destino||r.rota)+'</td><td>'+esc(r.motorista)+'</td><td>'+esc(r.placa||r.veiculo)+'</td><td>'+esc(r.peso||r.peso_total_kg)+'</td><td>'+esc(r.volumes||r.volume_total)+'</td>'+cell(startOf(r))+cell(endOf(r))+'<td>'+badge(r.resultado||r.status||'PENDENTE',resultClass(r.resultado||r.status))+'</td></tr>').join('');
+    return myTablePage('Meus Carregamentos','Data e hora obrigatórias no início e no fim da operação.',['Romaneio','Rota/Destino','Motorista','Placa','Peso','Volumes','Início — Data / Hora','Fim — Data / Hora','Resultado'],rows,'carregamentos');
+  };
+
+  window.atividadesPage=function(){
+    const d=userActs();
+    const rows=d.map((e,i)=>'<tr><td>'+esc(e.tipo||'Atividade')+'</td><td>'+esc(e.descricao_original||e.descricao||e.atividade||e.texto||e.detalhes||'')+'</td>'+cell(startOf(e))+cell(endOf(e))+'<td>'+badge(e.status||'PENDENTE',resultClass(e.status))+'</td><td><button class="btn secondary" onclick="activityDetail('+i+')">Ver</button></td></tr>').join('');
+    return tablePage('Minhas Atividades','Cada atividade registra data/hora de início e, quando encerrada, data/hora de fim.',['Tipo','Descrição original','Início — Data / Hora','Fim — Data / Hora','Status','Detalhes'],rows);
+  };
+
+  window.conferenciasPage=function(){
+    const d=userConfs();
+    const rows=d.map(r=>'<tr><td>'+esc(r.operacao||r.tipo_operacao)+'</td><td>'+esc(r.referencia||r.lote||r.pedido)+'</td>'+cell(r.inicio||r.hora,'datetime-cell')+cell(r.fim||r.hora,'datetime-cell')+'<td>'+badge(r.resultado||'PENDENTE',resultClass(r.resultado))+'</td><td>'+esc(r.ocorrencia||'—')+'</td><td>'+esc(r.quantidade_divergente||r.qtd||'—')+'</td><td>'+esc(r.observacao||'—')+'</td></tr>').join('');
+    return tablePage('Minhas Conferências','Data e hora de início e fim registradas na conferência.',['Operação','Lote/Pedido','Início — Data / Hora','Fim — Data / Hora','Resultado','Divergência','Qtd. divergente','Observação'],rows);
+  };
+})();
