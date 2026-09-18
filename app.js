@@ -188,8 +188,47 @@ function perf(){
  return '<div class="page-title"><h1>Meu Desempenho</h1><p>Indicadores operacionais do usuário.</p></div><div class="performance-kpis"><div class="perf-kpi"><span>Taxa de conformidade</span><strong>'+(total?Math.round(ok/total*100):0)+'%</strong><small>'+ok+' OK de '+total+'</small></div><div class="perf-kpi"><span>Total de operações</span><strong>'+(s.length+c.length+f.length)+'</strong></div><div class="perf-kpi"><span>Atividades</span><strong>'+rows('atividades').length+'</strong></div><div class="perf-kpi"><span>NÃO OK</span><strong>'+bad+'</strong></div></div>';
 }
 function profile(){return '<div class="page-title"><h1>Perfil / Acesso</h1><p>Dados da sua sessão atual.</p></div><div class="panel"><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.role)+' • Filial '+esc(state.user.cd)+'</small></div></div></div>';}
-function admin(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';return '<div class="page-title"><h1>Gestão de Usuários</h1><p>Contas disponíveis no sistema.</p></div><div class="panel"><div class="user-list">'+accountList().map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+'</small></div><span class="badge ok">Ativo</span></div>';}).join('')+'</div></div>';}
-
+const PERMISSION_DEFS=[['separacoes','Separação'],['carregamentos','Carregamento'],['conferencias','Conferência'],['atividades','Atividades'],['desempenho','Desempenho'],['detalhes','Detalhes'],['ocorrencias','Ocorrências'],['relatorios','Relatórios'],['perfil','Perfil / Acesso']];
+function accountList(){
+ try{
+  const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null'),map={};
+  accounts.forEach(function(x){map[norm(x.id)]=Object.assign({},x,{permissions:Object.assign({},x.permissions||{})});});
+  if(Array.isArray(raw))raw.forEach(function(x){if(x&&x.id){const k=norm(x.id);map[k]=Object.assign({},map[k]||{},x,{permissions:Object.assign({},map[k]&&map[k].permissions||{},x.permissions||{})});}});
+  return Object.keys(map).map(function(k){return map[k];});
+ }catch(e){return accounts.slice();}
+}
+function saveAccounts(list){try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));return true;}catch(e){return false;}}
+function admin(){
+ if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';
+ const list=accountList();
+ return '<div class="page-title"><div><h1>Administrador</h1><p>Gestão de usuários, perfis, filiais e permissões.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas</div></div></div><div class="user-list">'+list.map(function(u){const pc=PERMISSION_DEFS.filter(function(p){return !!(u.permissions||{})[p[0]];}).length+(u.permissions&&u.permissions.admin?1:0);return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões'+(u.permissions&&u.permissions.admin?' • ADM':'')+'</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(\''+esc(u.id)+'\')">Editar</button><button class="btn danger" onclick="deleteUser(\''+esc(u.id)+'\')">Excluir</button></div></div>';}).join('')+'</div></div>';
+}
+window.newUserForm=function(user){
+ if(!isAdmin())return;
+ user=user||{id:'',name:'',password:'',role:'Operador',cd:'CDD',permissions:{}};
+ const checks=PERMISSION_DEFS.map(function(p){return '<label class="permission-item"><input type="checkbox" name="perm" value="'+p[0]+'" '+(user.permissions&&user.permissions[p[0]]?'checked':'')+'>'+p[1]+'</label>';}).join('');
+ const adm=user.permissions&&user.permissions.admin?'checked':'';
+ const edit=!!user.id;
+ document.querySelector('#main').innerHTML='<div class="page-title"><div><h1>'+ (edit?'Editar usuário':'Novo usuário') +'</h1><p>Configure os dados e as permissões.</p></div></div><div class="panel admin-form"><div class="form-grid"><label>Usuário<input id="admId" value="'+esc(user.id)+'" '+(edit?'readonly':'')+'></label><label>Nome completo<input id="admName" value="'+esc(user.name)+'"></label><label>Senha<input id="admPass" type="password" value="'+esc(user.password||'')+'"></label><label>Perfil<select id="admRole"><option>Operador</option><option>Conferente</option><option>Supervisor</option><option>Administrador</option><option>Autor / Administrador</option></select></label><label>Filial / CD<input id="admCd" value="'+esc(user.cd||'CDD')+'"></label></div><h3 style="margin-top:22px">Permissões</h3><div class="permission-grid">'+checks+'<label class="permission-item admin-permission"><input id="permAdmin" type="checkbox" '+adm+'>Administrador / Gestão de Usuários</label></div><div class="form-actions"><button class="btn" onclick="saveUserAccount()">Salvar usuário</button><button class="btn secondary" onclick="state.page=\'admin\';render()">Cancelar</button></div></div>';
+ document.querySelector('#admRole').value=user.role||'Operador';
+};
+window.editUser=function(id){const u=accountList().find(function(x){return norm(x.id)===norm(id);});if(u)newUserForm(u);};
+window.saveUserAccount=function(){
+ if(!isAdmin())return;
+ const id=(document.querySelector('#admId')||{}).value||'',name=(document.querySelector('#admName')||{}).value||'',pass=(document.querySelector('#admPass')||{}).value||'',role=(document.querySelector('#admRole')||{}).value||'Operador',cd=(document.querySelector('#admCd')||{}).value||'CDD';
+ if(!norm(id)||!norm(name)||!pass){toast('Preencha usuário, nome e senha.');return;}
+ const permissions={};document.querySelectorAll('input[name="perm"]:checked').forEach(function(e){permissions[e.value]=true;});permissions.admin=!!((document.querySelector('#permAdmin')||{}).checked);
+ const list=accountList(),idx=list.findIndex(function(x){return norm(x.id)===norm(id);}),obj={id:id.trim(),name:name.trim(),password:pass,role:role,cd:cd.trim()||'CDD',permissions:permissions};
+ if(idx>=0)list[idx]=obj;else{if(list.some(function(x){return norm(x.id)===norm(id);}))return toast('Usuário já cadastrado.');list.push(obj);}
+ if(saveAccounts(list)){state.page='admin';render();toast('Usuário salvo com sucesso.');}else toast('Falha ao salvar.');
+};
+window.deleteUser=function(id){
+ if(!isAdmin())return;
+ if(norm(id)===norm(state.user.id)){toast('Não é permitido excluir o usuário conectado.');return;}
+ if(!confirm('Excluir o usuário '+id+'?'))return;
+ const list=accountList().filter(function(x){return norm(x.id)!==norm(id);});
+ if(saveAccounts(list)){render();toast('Usuário excluído.');}
+};
 function render(){
  if(!state.user)return;
  document.querySelector('#login').classList.add('hide');
