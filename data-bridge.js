@@ -21,21 +21,8 @@
   function normalizeRecord(type,r){
     const x=Object.assign({},r||{});
     x.filial_id=x.filial_id||x.filial||x.cd||'CDD';
-    x.usuario_id=x.usuario_id||x.user_id||x.usuario||x.operador_id||x.operador||x.conferente_id||'';
+    x.usuario_id=x.usuario_id||x.user_id||x.usuario||x.operador_id||x.operador||'';
     x.recebido_em=x.recebido_em||new Date().toISOString();
-    if(type==='atividades'){
-      x.hora=x.hora||x.data_hora||x.dataHora||x.timestamp||x.created_at||x.inicio||x.recebido_em;
-      x.tipo=x.tipo||x.acao||x.evento||x.operacao_tipo||'Atividade';
-      x.operacao=x.operacao||x.operacao_lote||x.lote_operacao||x.lote||'';
-      x.referencia=x.referencia||x.pedido||x.numero_pedido||x.numero_separacao||x.numero_romaneio||'';
-      x.romaneio=x.romaneio||x.referencia_romaneio||x.referencia_romaneio_transbordo||'';
-      x.rota=x.rota||x.rota_destino||x.destino||x.unidade_destino||'';
-      x.etapa=x.etapa||x.fase||x.status_etapa||x.tipo||'';
-      x.status=x.status||x.resultado||'Pendente';
-      x.prioridade=x.prioridade||'Normal';
-      x.operador=x.operador||x.operador_nome||x.operador_id||x.usuario||x.usuario_id||'';
-      x.descricao_original=x.descricao_original||x.descricao||x.observacao||'';
-    }
     return x;
   }
 
