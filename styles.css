@@ -128,3 +128,7 @@ header .header-actions{display:flex;align-items:center;gap:7px;position:relative
  .report-filter-card{padding:13px}
  .report-filter-fields{grid-template-columns:1fr}
 }
+
+
+/* ===== DATA/HORA: LEITURA VISUAL ===== */
+.date-cell,.time-cell{white-space:nowrap;font-variant-numeric:tabular-nums}.date-cell{font-weight:700;letter-spacing:.1px}.time-cell{font-weight:800}.table th.date-cell,.table th.time-cell{min-width:76px}@media(max-width:700px){.date-cell,.time-cell{white-space:nowrap}.table th,.table td{padding-left:8px;padding-right:8px}}
