@@ -62,8 +62,8 @@ function toast(v){const e=document.querySelector('#toast');if(!e)return;e.textCo
 window.showToast=toast;
 
 const accounts=[
- {id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}},
- {id:'maximo',name:'Maximo',password:'1234',role:'Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}},
+ {id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,detalhes:true,ocorrencias:true,relatorios:true,perfil:true,admin:true}},
+ {id:'maximo',name:'Maximo',password:'1234',role:'Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,detalhes:true,ocorrencias:true,relatorios:true,perfil:true,admin:true}},
  {id:'joao.silva',name:'João Silva',password:'1234',role:'Operador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}}
 ];
 function accountList(){
