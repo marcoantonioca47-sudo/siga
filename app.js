@@ -106,14 +106,14 @@ window.restoreSession=function(){
  }catch(e){return false;}
 };
 
-function logout(){state.user=null;try{localStorage.removeItem(STORAGE_USER);}catch(e){}document.querySelector('#app').classList.add('hide');document.querySelector('#login').classList.remove('hide');}
+function logout(){state.user=null;state.page='home';try{localStorage.removeItem(STORAGE_USER);}catch(e){}closeMobileMenu();document.querySelector('#app').classList.add('hide');document.querySelector('#login').classList.remove('hide');const m=document.querySelector('#loginmsg');if(m)m.textContent='';const u=document.querySelector('#u');if(u)u.focus();}
 window.logout=logout;
 
 function nav(){
  const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['perfil','●','Perfil / Acesso',true],['admin','⚙','Gestão de Usuários',state.permissions.admin],['logout','↪','Sair',true]];
  const el=document.querySelector('#nav');if(!el)return;
  el.innerHTML=items.filter(function(x){return x[3];}).map(function(x){return '<button class="nav-item '+(state.page===x[0]?'active':'')+'" data-page="'+x[0]+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>';}).join('');
- el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'){toast('Acesso não permitido.');return;}state.page=p;render();};});
+ el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
 }
 
 function updateUI(){
@@ -148,9 +148,25 @@ function confPage(){
  return tablePage('Minhas Conferências','Resultados das conferências.',['Operação','Lote/Pedido','Data / Hora','Resultado','Divergência','Qtd. divergente','Observação'],body);
 }
 function home(){
- const s=rows('separacoes').length,c=rows('carregamentos').length,f=rows('conferencias').length,a=rows('atividades').length;
- return '<div class="hero"><div><div class="eyebrow">Painel operacional</div><h1>Olá, '+esc(state.user.name.split(' ')[0])+'!</h1><p>Aqui está o resumo das suas atividades.</p></div><button class="btn secondary" onclick="location.reload()">↻ Atualizar</button></div><div class="cards"><div class="stat blue"><div class="stat-top"><span>SEPARAÇÕES</span><span class="stat-icon">▣</span></div><strong>'+s+'</strong><small>Registros</small></div><div class="stat green"><div class="stat-top"><span>CARREGAMENTOS</span><span class="stat-icon">▰</span></div><strong>'+c+'</strong><small>Registros</small></div><div class="stat purple"><div class="stat-top"><span>CONFERÊNCIAS</span><span class="stat-icon">✓</span></div><strong>'+f+'</strong><small>Registros</small></div><div class="stat dark"><div class="stat-top"><span>ATIVIDADES</span><span class="stat-icon">☷</span></div><strong>'+a+'</strong><small>Registros</small></div></div><div class="panel"><h3>📋 Atividades recentes</h3><div class="timeline">'+rows('atividades').slice(-8).reverse().map(function(e){return '<div class="event"><span class="dot"></span><div><b>'+dt(e.hora)+' • '+esc(e.tipo)+'</b><small>'+esc(e.descricao_original||'')+'</small></div>'+badge(e.status)+'</div>';}).join('')+'</div></div>';
+ const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias'),a=rows('atividades');
+ const ok=f.filter(function(x){return norm(x.resultado)==='ok';}).length+c.filter(function(x){return norm(x.resultado)==='ok';}).length;
+ const bad=f.filter(function(x){return /não ok|nao ok/i.test(x.resultado||'');}).length+c.filter(function(x){return /não ok|nao ok/i.test(x.resultado||'');}).length;
+ const total=ok+bad,rate=total?Math.round(ok/total*100):0;
+ const recent=a.slice(-6).reverse();
+ return '<div class="hero"><div><div class="eyebrow">Painel operacional • '+esc(state.user.cd||'CDD')+'</div><h1>Olá, '+esc(state.user.name.split(' ')[0])+' 👋</h1><p>Acompanhe suas operações, resultados e atividades em um só lugar.</p></div><div class="hero-actions"><button class="btn secondary" onclick="refreshDashboard()">↻ Atualizar</button></div></div>'+
+ '<div class="operational-strip"><div><span>STATUS DA SESSÃO</span><b class="oktext">● Online</b></div><div><span>CONFORMIDADE</span><b>'+rate+'%</b></div><div><span>OPERAÇÕES</span><b>'+(s.length+c.length)+'</b></div><div><span>OCORRÊNCIAS</span><b class="'+(bad?'badtext':'')+'">'+bad+'</b></div></div>'+
+ '<div class="cards"><div class="stat blue clickable" onclick="goPage(\'separacoes\')"><div class="stat-top"><span>SEPARAÇÕES</span><span class="stat-icon">▣</span></div><strong>'+s.length+'</strong><small>Ver registros →</small></div>'+
+ '<div class="stat green clickable" onclick="goPage(\'carregamentos\')"><div class="stat-top"><span>CARREGAMENTOS</span><span class="stat-icon">▰</span></div><strong>'+c.length+'</strong><small>Ver registros →</small></div>'+
+ '<div class="stat purple clickable" onclick="goPage(\'conferencias\')"><div class="stat-top"><span>CONFERÊNCIAS</span><span class="stat-icon">✓</span></div><strong>'+f.length+'</strong><small>Ver resultados →</small></div>'+
+ '<div class="stat dark clickable" onclick="goPage(\'atividades\')"><div class="stat-top"><span>ATIVIDADES</span><span class="stat-icon">☷</span></div><strong>'+a.length+'</strong><small>Ver histórico →</small></div></div>'+
+ '<div class="grid2"><div class="panel"><div class="panel-title"><div><h3>📋 Atividades recentes</h3><div class="sub">Últimos registros vinculados ao seu acesso</div></div><button class="btn secondary" onclick="goPage(\'atividades\')">Ver tudo</button></div><div class="timeline">'+(recent.length?recent.map(function(e){return '<div class="event"><span class="dot"></span><div><b>'+dt(e.hora)+' • '+esc(e.tipo)+'</b><small>'+esc(e.descricao_original||'')+'</small></div>'+badge(e.status)+'</div>';}).join(''):'<div class="empty">Nenhuma atividade recente.</div>')+'</div></div>'+
+ '<div class="panel"><div class="panel-title"><div><h3>📊 Resumo operacional</h3><div class="sub">Indicadores da sua sessão</div></div></div><div class="bar-row"><label>Conformidade</label><div class="bar"><div class="fill green" style="width:'+rate+'%"></div></div><strong>'+rate+'%</strong></div><div class="bar-row"><label>Operações OK</label><div class="bar"><div class="fill" style="width:'+(total?Math.round(ok/total*100):0)+'%"></div></div><strong>'+ok+'</strong></div><div class="bar-row"><label>Ocorrências</label><div class="bar"><div class="fill red" style="width:'+(total?Math.min(100,Math.round(bad/Math.max(total,1)*100)):0)+'%"></div></div><strong>'+bad+'</strong></div><div class="performance-note"><span>Atualização:</span><b>agora</b></div></div></div>';
 }
+function refreshDashboard(){render();toast('Painel atualizado.');}
+function goPage(p){if(!state.permissions[p]&&p!=='home'&&p!=='perfil'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();}
+function closeMobileMenu(){const a=document.querySelector('aside');if(a)a.classList.remove('open');const o=document.querySelector('#menuOverlay');if(o)o.classList.remove('show');}
+window.refreshDashboard=refreshDashboard;window.goPage=goPage;window.closeMobileMenu=closeMobileMenu;
+
 function perf(){
  const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias');
  const ok=f.filter(function(x){return norm(x.resultado)==='ok';}).length+c.filter(function(x){return norm(x.resultado)==='ok';}).length;
@@ -173,7 +189,9 @@ window.render=render;
 window.filterRows=function(v){const q=norm(v);document.querySelectorAll('#dataRows tr').forEach(function(r){r.style.display=!q||norm(r.innerText).indexOf(q)>=0?'':'none';});};
 window.applyFilters=function(){const q=norm((document.querySelector('#searchFilter')||{}).value||'');const st=norm((document.querySelector('#statusFilter')||{}).value||'');document.querySelectorAll('#dataRows tr').forEach(function(r){const t=norm(r.innerText);const okq=!q||t.indexOf(q)>=0;const oks=!st||st.indexOf('todos')===0||t.indexOf(st)>=0;r.style.display=okq&&oks?'':'none';});};
 
-function clock(){const e=document.querySelector('#headerClock');if(e)e.textContent=new Date().toLocaleString('pt-BR');}
+function clock(){const e=document.querySelector('#headerClock');if(e)e.textContent=new Date().toLocaleString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});}
+document.addEventListener('click',function(e){const a=document.querySelector('aside');const o=document.querySelector('#menuOverlay');if(o&&e.target===o)closeMobileMenu();if(a&&window.innerWidth<=980&&a.classList.contains('open')&&!a.contains(e.target)&&!e.target.closest('.hamb'))closeMobileMenu();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMobileMenu();});
 document.addEventListener('DOMContentLoaded',function(){
  const btn=document.querySelector('#loginBtn');
  if(btn)btn.onclick=function(e){e.preventDefault();window.login();};
