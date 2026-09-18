@@ -9,7 +9,7 @@ const ACCOUNT_STORE='siga30_accounts_v4';
 const state={
  user:null,
  page:'home',
- permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}
+ permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,detalhes:false,ocorrencias:false,relatorios:false,admin:false}
 };
 
 const demo={
@@ -63,23 +63,33 @@ function toast(v){const e=document.querySelector('#toast');if(!e)return;e.textCo
 window.showToast=toast;
 
 const accounts=[
- {id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}},
+ {id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,detalhes:true,ocorrencias:true,relatorios:true,admin:true}},
  {id:'maximo',name:'Maximo',password:'1234',role:'Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}},
  {id:'joao.silva',name:'João Silva',password:'1234',role:'Operador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}}
 ];
 function accountList(){
  try{
   const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');
-  if(Array.isArray(raw)&&raw.length)return accounts.concat(raw).filter(function(x,i,a){return a.findIndex(function(y){return norm(y.id)===norm(x.id);})===i;});
+  if(Array.isArray(raw)&&raw.length){
+   const merged=accounts.map(function(base){
+    const over=raw.find(function(x){return norm(x.id)===norm(base.id);});
+    return over?Object.assign({},base,over,{permissions:Object.assign({},base.permissions,over.permissions||{})}):base;
+   });
+   raw.forEach(function(x){if(!merged.some(function(y){return norm(y.id)===norm(x.id);}))merged.push(x);});
+   return merged;
+  }
  }catch(e){}
- return accounts;
+ return accounts.slice();
+}
+function saveAccounts(list){
+ try{localStorage.setItem(ACCOUNT_STORE,JSON.stringify(list));return true;}catch(e){return false;}
 }
 
 function applyUser(u){
  state.user={id:u.id,usuario:u.id,username:u.id,name:u.name,role:u.role,cd:u.cd||'CDD',filial_id:u.cd||'CDD',avatar:u.name.split(/\s+/).map(function(x){return x[0];}).join('').slice(0,2).toUpperCase()};
  state.permissions={separacoes:false,carregamentos:false,atividades:false,desempenho:false,conferencias:false,admin:false};
  Object.assign(state.permissions,u.permissions||{});
- if(/autor|administrador/i.test(state.user.role))Object.keys(state.permissions).forEach(function(k){state.permissions[k]=true;});
+
  try{localStorage.setItem(STORAGE_USER,JSON.stringify(state.user));}catch(e){}
  render();
 }
@@ -110,7 +120,7 @@ function logout(){state.user=null;state.page='home';try{localStorage.removeItem(
 window.logout=logout;
 
 function nav(){
- const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['detalhes','⌕','Detalhes',isAdmin()],['ocorrencias','⚠','Ocorrências',isAdmin()],['relatorios','▤','Relatórios',isAdmin()],['perfil','●','Perfil / Acesso',true],['admin','⚙','Gestão de Usuários',state.permissions.admin],['logout','↪','Sair',true]];
+ const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['detalhes','⌕','Detalhes',state.permissions.detalhes],['ocorrencias','⚠','Ocorrências',state.permissions.ocorrencias],['relatorios','▤','Relatórios',state.permissions.relatorios],['perfil','●','Perfil / Acesso',true],['admin','⚙','Gestão de Usuários',state.permissions.admin],['logout','↪','Sair',true]];
  const el=document.querySelector('#nav');if(!el)return;
  el.innerHTML=items.filter(function(x){return x[3];}).map(function(x){return '<button class="nav-item '+(state.page===x[0]?'active':'')+'" data-page="'+x[0]+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>';}).join('');
  el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
@@ -139,8 +149,17 @@ function carPage(){
 }
 function actPage(){
  const d=rows('atividades');
- const body=d.map(function(r){return '<tr><td>'+dt(r.hora||r.inicio)+'</td><td>'+esc(r.tipo)+'</td><td>'+esc(r.descricao_original||r.descricao)+'</td><td>'+badge(r.status)+'</td></tr>';}).join('');
- return tablePage('Minhas Atividades','Histórico das atividades realizadas.',['Data / Hora','Tipo','Descrição','Status'],body);
+ const body=d.map(function(r){
+  const ref=r.referencia||r.pedido||r.numero_separacao||r.numero_romaneio||'—';
+  const op=r.operacao||r.operacao_lote||r.lote||r.lote_operacao||'—';
+  const rom=r.romaneio||r.referencia_romaneio||r.referencia_romaneio_transbordo||'—';
+  const rota=r.rota||r.destino||r.rota_destino||r.unidade_destino||'—';
+  const etapa=r.etapa||r.fase||r.tipo||'—';
+  const operador=r.operador||r.operador_id||r.usuario||r.usuario_id||'—';
+  const descricao=r.descricao_original||r.descricao||r.observacao||'—';
+  return '<tr><td>'+dt(r.hora||r.data_hora||r.timestamp||r.inicio||r.recebido_em)+'</td><td>'+esc(r.tipo||r.acao||'Atividade')+'</td><td>'+esc(op)+'</td><td>'+esc(ref)+'</td><td>'+esc(rom)+'</td><td>'+esc(rota)+'</td><td>'+esc(etapa)+'</td><td>'+badge(r.status||r.resultado)+'</td><td>'+esc(r.prioridade||'—')+'</td><td>'+esc(operador)+'</td><td>'+esc(descricao)+'</td></tr>';
+ }).join('');
+ return tablePage('Minhas Atividades','Histórico completo do fluxo operacional do SIGA 3.0 — presença, separação, conferência, fim, romaneio e carregamento.',['Data / Hora','Tipo','Operação / Lote','Referência','Romaneio','Rota / Destino','Etapa','Status','Prioridade','Operador','Descrição'],body);
 }
 function confPage(){
  const d=rows('conferencias');
@@ -177,9 +196,9 @@ function exportCurrentCSV(){
 function printCurrent(){window.print();}
 window.exportCurrentCSV=exportCurrentCSV;window.printCurrent=printCurrent;
 
-function details(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3><p>Esta área está disponível somente para administradores.</p></div>';const all=[...rows('separacoes').map(x=>Object.assign({_tipo:'Separação'},x)),...rows('carregamentos').map(x=>Object.assign({_tipo:'Carregamento'},x)),...rows('conferencias').map(x=>Object.assign({_tipo:'Conferência'},x))];return '<div class="page-title"><div><h1>Detalhes das Operações</h1><p>Visão consolidada dos registros da sua sessão.</p></div><div class="page-actions"><button class="btn secondary" onclick="exportCurrentCSV()">⇩ CSV</button><button class="btn secondary" onclick="printCurrent()">🖨 Imprimir</button></div></div><div class="panel"><div class="detail-grid">'+(all.length?all.map(function(r){return '<div class="detail-card"><div><span class="detail-type">'+esc(r._tipo)+'</span>'+badge(r.resultado||r.status)+'</div><h3>'+esc(r.lote||r.romaneio||r.referencia||'Operação')+'</h3><p><b>Destino:</b> '+esc(r.destino||'—')+' &nbsp; <b>Data:</b> '+dt(r.hora||r.inicio)+'</p><p><b>Peso:</b> '+esc(r.peso||'—')+' &nbsp; <b>Volumes:</b> '+esc(r.volumes||r.quantidade_divergente||'—')+'</p><small>'+esc(r.observacao||r.ocorrencia||'Sem observações.')+'</small></div>';}).join(''):'<div class="empty">Nenhuma operação encontrada.</div>')+'</div></div>';}
-function occurrences(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3><p>Esta área está disponível somente para administradores.</p></div>';const list=[...rows('conferencias').filter(x=>/não ok|nao ok/i.test(x.resultado||'')),...rows('carregamentos').filter(x=>/não ok|nao ok/i.test(x.resultado||'')),...rows('separacoes').filter(x=>/não ok|nao ok/i.test(x.resultado||''))];return '<div class="page-title"><div><h1>Ocorrências</h1><p>Registros com divergências ou resultado NÃO OK.</p></div></div><div class="panel"><div class="occ-list">'+(list.length?list.map(function(r){return '<div class="occ-card"><div class="occ-icon">⚠</div><div><b>'+esc(r.referencia||r.lote||r.romaneio||'Ocorrência')+'</b><small>'+esc(r.ocorrencia||'Resultado NÃO OK')+'</small><small>'+esc(r.observacao||'Verifique os detalhes da operação.')+'</small></div>'+badge('NÃO OK')+'</div>';}).join(''):'<div class="empty">Nenhuma ocorrência encontrada.</div>')+'</div></div>';}
-function reports(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3><p>Esta área está disponível somente para administradores.</p></div>';const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias'),a=rows('atividades');const ok=c.filter(x=>norm(x.resultado)==='ok').length+f.filter(x=>norm(x.resultado)==='ok').length;const bad=c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length+f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length;const total=ok+bad;return '<div class="page-title"><div><h1>Relatórios e Indicadores</h1><p>Resumo operacional baseado nos dados carregados no sistema.</p></div><div class="page-actions"><button class="btn secondary" onclick="printCurrent()">🖨 Imprimir</button></div></div><div class="report-kpis"><div><span>Separações</span><b>'+s.length+'</b></div><div><span>Carregamentos</span><b>'+c.length+'</b></div><div><span>Conferências</span><b>'+f.length+'</b></div><div><span>Conformidade</span><b>'+(total?Math.round(ok/total*100):0)+'%</b></div></div><div class="report-grid"><div class="panel"><h3>Operações por módulo</h3><div class="report-bars"><div><span>Separações</span><i><em style="width:'+Math.min(100,s.length*20)+'%"></em></i><b>'+s.length+'</b></div><div><span>Carregamentos</span><i><em style="width:'+Math.min(100,c.length*20)+'%"></em></i><b>'+c.length+'</b></div><div><span>Conferências</span><i><em style="width:'+Math.min(100,f.length*20)+'%"></em></i><b>'+f.length+'</b></div><div><span>Atividades</span><i><em style="width:'+Math.min(100,a.length*20)+'%"></em></i><b>'+a.length+'</b></div></div></div><div class="panel"><h3>Resultados</h3><div class="result-summary"><strong class="oktext">'+ok+'</strong><span>OK</span><strong class="badtext">'+bad+'</strong><span>NÃO OK</span></div></div></div></div>';}
+function details(){if(!state.permissions.detalhes)return '<div class="panel"><h3>Acesso restrito</h3><p>Esta área está disponível somente para administradores.</p></div>';const all=[...rows('separacoes').map(x=>Object.assign({_tipo:'Separação'},x)),...rows('carregamentos').map(x=>Object.assign({_tipo:'Carregamento'},x)),...rows('conferencias').map(x=>Object.assign({_tipo:'Conferência'},x))];return '<div class="page-title"><div><h1>Detalhes das Operações</h1><p>Visão consolidada dos registros da sua sessão.</p></div><div class="page-actions"><button class="btn secondary" onclick="exportCurrentCSV()">⇩ CSV</button><button class="btn secondary" onclick="printCurrent()">🖨 Imprimir</button></div></div><div class="panel"><div class="detail-grid">'+(all.length?all.map(function(r){return '<div class="detail-card"><div><span class="detail-type">'+esc(r._tipo)+'</span>'+badge(r.resultado||r.status)+'</div><h3>'+esc(r.lote||r.romaneio||r.referencia||'Operação')+'</h3><p><b>Destino:</b> '+esc(r.destino||'—')+' &nbsp; <b>Data:</b> '+dt(r.hora||r.inicio)+'</p><p><b>Peso:</b> '+esc(r.peso||'—')+' &nbsp; <b>Volumes:</b> '+esc(r.volumes||r.quantidade_divergente||'—')+'</p><small>'+esc(r.observacao||r.ocorrencia||'Sem observações.')+'</small></div>';}).join(''):'<div class="empty">Nenhuma operação encontrada.</div>')+'</div></div>';}
+function occurrences(){if(!state.permissions.ocorrencias)return '<div class="panel"><h3>Acesso restrito</h3><p>Esta área está disponível somente para administradores.</p></div>';const list=[...rows('conferencias').filter(x=>/não ok|nao ok/i.test(x.resultado||'')),...rows('carregamentos').filter(x=>/não ok|nao ok/i.test(x.resultado||'')),...rows('separacoes').filter(x=>/não ok|nao ok/i.test(x.resultado||''))];return '<div class="page-title"><div><h1>Ocorrências</h1><p>Registros com divergências ou resultado NÃO OK.</p></div></div><div class="panel"><div class="occ-list">'+(list.length?list.map(function(r){return '<div class="occ-card"><div class="occ-icon">⚠</div><div><b>'+esc(r.referencia||r.lote||r.romaneio||'Ocorrência')+'</b><small>'+esc(r.ocorrencia||'Resultado NÃO OK')+'</small><small>'+esc(r.observacao||'Verifique os detalhes da operação.')+'</small></div>'+badge('NÃO OK')+'</div>';}).join(''):'<div class="empty">Nenhuma ocorrência encontrada.</div>')+'</div></div>';}
+function reports(){if(!state.permissions.relatorios)return '<div class="panel"><h3>Acesso restrito</h3><p>Esta área está disponível somente para administradores.</p></div>';const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias'),a=rows('atividades');const ok=c.filter(x=>norm(x.resultado)==='ok').length+f.filter(x=>norm(x.resultado)==='ok').length;const bad=c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length+f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length;const total=ok+bad;return '<div class="page-title"><div><h1>Relatórios e Indicadores</h1><p>Resumo operacional baseado nos dados carregados no sistema.</p></div><div class="page-actions"><button class="btn secondary" onclick="printCurrent()">🖨 Imprimir</button></div></div><div class="report-kpis"><div><span>Separações</span><b>'+s.length+'</b></div><div><span>Carregamentos</span><b>'+c.length+'</b></div><div><span>Conferências</span><b>'+f.length+'</b></div><div><span>Conformidade</span><b>'+(total?Math.round(ok/total*100):0)+'%</b></div></div><div class="report-grid"><div class="panel"><h3>Operações por módulo</h3><div class="report-bars"><div><span>Separações</span><i><em style="width:'+Math.min(100,s.length*20)+'%"></em></i><b>'+s.length+'</b></div><div><span>Carregamentos</span><i><em style="width:'+Math.min(100,c.length*20)+'%"></em></i><b>'+c.length+'</b></div><div><span>Conferências</span><i><em style="width:'+Math.min(100,f.length*20)+'%"></em></i><b>'+f.length+'</b></div><div><span>Atividades</span><i><em style="width:'+Math.min(100,a.length*20)+'%"></em></i><b>'+a.length+'</b></div></div></div><div class="panel"><h3>Resultados</h3><div class="result-summary"><strong class="oktext">'+ok+'</strong><span>OK</span><strong class="badtext">'+bad+'</strong><span>NÃO OK</span></div></div></div></div>';}
 function perf(){
  const s=rows('separacoes'),c=rows('carregamentos'),f=rows('conferencias');
  const ok=f.filter(function(x){return norm(x.resultado)==='ok';}).length+c.filter(function(x){return norm(x.resultado)==='ok';}).length;
@@ -188,7 +207,61 @@ function perf(){
  return '<div class="page-title"><h1>Meu Desempenho</h1><p>Indicadores operacionais do usuário.</p></div><div class="performance-kpis"><div class="perf-kpi"><span>Taxa de conformidade</span><strong>'+(total?Math.round(ok/total*100):0)+'%</strong><small>'+ok+' OK de '+total+'</small></div><div class="perf-kpi"><span>Total de operações</span><strong>'+(s.length+c.length+f.length)+'</strong></div><div class="perf-kpi"><span>Atividades</span><strong>'+rows('atividades').length+'</strong></div><div class="perf-kpi"><span>NÃO OK</span><strong>'+bad+'</strong></div></div>';
 }
 function profile(){return '<div class="page-title"><h1>Perfil / Acesso</h1><p>Dados da sua sessão atual.</p></div><div class="panel"><div class="user-row"><div class="avatar">'+esc(state.user.avatar)+'</div><div><b>'+esc(state.user.name)+'</b><small>'+esc(state.user.role)+' • Filial '+esc(state.user.cd)+'</small></div></div></div>';}
-function admin(){if(!isAdmin())return '<div class="panel"><h3>Acesso restrito</h3></div>';return '<div class="page-title"><h1>Gestão de Usuários</h1><p>Contas disponíveis no sistema.</p></div><div class="panel"><div class="user-list">'+accountList().map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+'</small></div><span class="badge ok">Ativo</span></div>';}).join('')+'</div></div>';}
+function admin(){
+ if(!state.permissions.admin)return '<div class="panel"><h3>Acesso restrito</h3><p>Você não possui permissão para Gestão de Usuários.</p></div>';
+ const list=accountList();
+ return '<div class="page-title"><div><h1>Gestão de Usuários</h1><p>Cadastre, edite e defina permissões individualmente para cada tela de informação.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div>'+
+ '<div class="admin-grid"><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">Cada usuário pode ter um conjunto próprio de telas liberadas.</div></div><span class="badge ok">'+list.length+' usuários</span></div><div class="user-list" style="margin-top:12px">'+list.map(function(u){
+  const p=u.permissions||{};
+  const activeCount=['separacoes','carregamentos','conferencias','atividades','desempenho','detalhes','ocorrencias','relatorios','admin'].filter(function(k){return !!p[k];}).length;
+  return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').split(/\s+/).map(function(x){return x[0];}).join('').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name)+'</b><small>'+esc(u.id)+' • '+esc(u.role)+' • '+esc(u.cd||'CDD')+'</small><small>'+activeCount+' permissões liberadas</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUserForm(\''+esc(u.id).replace(/'/g,"\\'")+'\')">Editar</button><button class="btn danger" onclick="deleteUserAccount(\''+esc(u.id).replace(/'/g,"\\'")+'\')">Excluir</button></div></div>';
+ }).join('')+'</div></div><div class="panel" id="userEditor"><div class="empty">Selecione <b>Editar</b> ou clique em <b>Novo usuário</b>.</div></div></div>';
+}
+function userPermissionKeys(){
+ return [
+  ['separacoes','Minhas Separações'],['carregamentos','Meus Carregamentos'],['conferencias','Minhas Conferências'],
+  ['atividades','Minhas Atividades'],['desempenho','Meu Desempenho'],['detalhes','Detalhes'],
+  ['ocorrencias','Ocorrências'],['relatorios','Relatórios'],['admin','Gestão de Usuários']
+ ];
+}
+function userForm(u){
+ const x=u||{id:'',name:'',password:'',role:'Operador',cd:'CDD',permissions:{}};
+ const p=x.permissions||{};
+ const checks=userPermissionKeys().map(function(k){return '<label class="check"><input type="checkbox" name="perm_'+k[0]+'" '+(p[k[0]]?'checked':'')+'> '+k[1]+'</label>';}).join('');
+ return '<div class="panel-title"><div><h3>'+ (u?'Editar usuário':'Novo usuário') +'</h3><div class="sub">Defina exatamente quais telas o usuário poderá visualizar.</div></div></div>'+
+ '<div class="user-form" style="margin-top:12px"><div class="field"><label>Usuário / Login</label><input id="userId" value="'+esc(x.id)+'" '+(u?'readonly':'')+'></div><div class="field"><label>Nome</label><input id="userName" value="'+esc(x.name)+'"></div><div class="field"><label>Senha</label><input id="userPassword" type="password" value="'+esc(x.password||'')+'" placeholder="'+(u?'Deixe igual para manter':'Digite a senha')+'"></div><div class="field"><label>Perfil</label><select id="userRole"><option '+(x.role==='Operador'?'selected':'')+'>Operador</option><option '+(x.role==='Conferente'?'selected':'')+'>Conferente</option><option '+(x.role==='Supervisor'?'selected':'')+'>Supervisor</option><option '+(x.role==='Administrador'?'selected':'')+'>Administrador</option><option '+(x.role==='Autor / Administrador'?'selected':'')+'>Autor / Administrador</option></select></div><div class="field"><label>Filial / CD</label><input id="userCd" value="'+esc(x.cd||'CDD')+'"></div></div>'+
+ '<div class="admin-note">Permissões de informação: marque somente as telas que o usuário deve visualizar. O administrador não precisa receber todas as telas automaticamente; as caixas abaixo controlam o acesso individual.</div>'+
+ '<div class="checkgrid">'+checks+'</div><div class="form-actions"><button class="btn" onclick="saveUserForm()">Salvar usuário</button><button class="btn secondary" onclick="render()">Cancelar</button></div>';
+}
+function newUserForm(){const e=document.querySelector('#userEditor');if(e)e.innerHTML=userForm(null);}
+function editUserForm(id){const u=accountList().find(function(x){return norm(x.id)===norm(id);});const e=document.querySelector('#userEditor');if(e&&u)e.innerHTML=userForm(u);}
+function saveUserForm(){
+ const id=(document.querySelector('#userId')||{}).value.trim();
+ const name=(document.querySelector('#userName')||{}).value.trim();
+ const password=(document.querySelector('#userPassword')||{}).value;
+ const role=(document.querySelector('#userRole')||{}).value;
+ const cd=(document.querySelector('#userCd')||{}).value.trim()||'CDD';
+ if(!id||!name){toast('Informe usuário e nome.');return;}
+ const perms={};
+ userPermissionKeys().forEach(function(k){const e=document.querySelector('[name="perm_'+k[0]+'"]');perms[k[0]]=!!(e&&e.checked);});
+ const list=accountList();
+ const idx=list.findIndex(function(x){return norm(x.id)===norm(id);});
+ if(idx>=0){
+  const current=list[idx];
+  list[idx]=Object.assign({},current,{id:id,name:name,role:role,cd:cd,password:password||current.password,permissions:perms});
+ }else{
+  if(!password){toast('Informe uma senha para o novo usuário.');return;}
+  list.push({id:id,name:name,role:role,cd:cd,password:password,permissions:perms});
+ }
+ if(saveAccounts(list)){toast('Usuário salvo com as permissões definidas.');render();}else toast('Não foi possível salvar o usuário.');
+}
+function deleteUserAccount(id){
+ if(norm(id)===norm(state.user.id)){toast('Não é permitido excluir o usuário em sessão.');return;}
+ if(!confirm('Excluir o usuário '+id+'?'))return;
+ const list=accountList().filter(function(x){return norm(x.id)!==norm(id);});
+ if(saveAccounts(list)){toast('Usuário excluído.');render();}else toast('Não foi possível excluir o usuário.');
+}
+window.newUserForm=newUserForm;window.editUserForm=editUserForm;window.saveUserForm=saveUserForm;window.deleteUserAccount=deleteUserAccount;
 
 function render(){
  if(!state.user)return;
