@@ -175,7 +175,20 @@ const oldRender=render;render=function(){oldRender();if(state.page==='admin')ren
 const ACCOUNT_STORE='siga30_accounts_v4';
 const NOTIFY_STORE='siga30_notifications_v1';
 function normalizeAccount(x){if(!x)return null;if(Array.isArray(x)){const d=x[3]||'';return {id:(x[1]||'').toLowerCase(),name:x[1]||'',password:'',role:x[2]||'Operador',cd:'CDD',permissions:{separacoes:/separa/i.test(d)||/todas/i.test(d),carregamentos:/carreg/i.test(d)||/todas/i.test(d),atividades:/ativ/i.test(d)||/todas/i.test(d),desempenho:/desempenho/i.test(d)||/todas/i.test(d),conferencias:/confer/i.test(d)||/todas/i.test(d),admin:/administrador|autor/i.test(x[2]||'')}};}return {...x,permissions:{...x.permissions}};}
-function accountList(){try{const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');if(Array.isArray(raw)&&raw.length)return raw.map(normalizeAccount);}catch(e){}return [{id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true}},{id:'joao.silva',name:'João Silva',password:'1234',role:'Operador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}}];}
+function accountList(){
+ const adminPerm={separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:true,admin:true};
+ try{
+  const raw=JSON.parse(localStorage.getItem(ACCOUNT_STORE)||'null');
+  if(Array.isArray(raw)&&raw.length){
+   const users=raw.map(normalizeAccount);
+   const max=users.find(u=>/^(maximo|máximo)$/i.test(String(u.id||u.usuario||u.username||u.login||''))||/^(maximo|máximo)$/i.test(String(u.name||u.nome||'')));
+   if(max){max.role='Administrador';max.permissions={...(max.permissions||{}),...adminPerm};max.admin=true;}
+   localStorage.setItem(ACCOUNT_STORE,JSON.stringify(users));
+   return users;
+  }
+ }catch(e){}
+ return [{id:'01022005',name:'Marco',password:'01022005',role:'Autor / Administrador',cd:'CDD',permissions:adminPerm},{id:'maximo',name:'Maximo',password:'1234',role:'Administrador',cd:'CDD',permissions:adminPerm},{id:'joao.silva',name:'João Silva',password:'1234',role:'Operador',cd:'CDD',permissions:{separacoes:true,carregamentos:true,atividades:true,desempenho:true,conferencias:false,admin:false}}];
+}
 function saveAccounts(a){localStorage.setItem(ACCOUNT_STORE,JSON.stringify(a));}
 function getNotifications(){try{const n=JSON.parse(localStorage.getItem(NOTIFY_STORE)||'null');return Array.isArray(n)?n:[];}catch(e){return [];}}
 function saveNotifications(n){localStorage.setItem(NOTIFY_STORE,JSON.stringify(n));}
