@@ -1055,3 +1055,79 @@ function relatoriosPage(){
     return tablePage('Minhas Conferências','Data e hora de início e fim registradas na conferência.',['Operação','Lote/Pedido','Início — Data / Hora','Fim — Data / Hora','Resultado','Divergência','Qtd. divergente','Observação'],rows);
   };
 })();
+
+
+/* ===== FORMATAÇÃO GLOBAL DE DATA E HORA ===== */
+(function(){
+  const pad=n=>String(n).padStart(2,'0');
+  function parse(v){
+    if(v==null||v==='')return null;
+    const s=String(v).trim();
+    let m=s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?$/);
+    if(m)return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0));
+    m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+    m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if(m)return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+    return null;
+  }
+  function formatValue(v){
+    const d=parse(v);
+    if(!d)return null;
+    const date=pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+    const hasTime=/T|:/.test(String(v));
+    return {date,time:hasTime?pad(d.getHours())+':'+pad(d.getMinutes()):'',hasTime};
+  }
+  window.formatDateTimeBR=function(v){
+    const x=formatValue(v);
+    return x?(x.hasTime?x.date+' '+x.time:x.date):String(v??'');
+  };
+
+  function formatElement(el){
+    if(!el||el.dataset.datetimeFormatted==='1')return;
+    const tag=String(el.tagName||'').toLowerCase();
+    if(['script','style','input','textarea','select','option','button'].includes(tag))return;
+    if(el.children.length>0 && !el.classList.contains('datetime-cell'))return;
+    const raw=(el.textContent||'').trim();
+    if(!raw)return;
+    const x=formatValue(raw);
+    if(!x)return;
+    if(x.hasTime){
+      el.classList.add('datetime-cell');
+      el.innerHTML='<span>'+x.date+'</span><small>🕐 '+x.time+'</small>';
+    }else{
+      el.textContent=x.date;
+    }
+    el.dataset.datetimeFormatted='1';
+  }
+
+  function scan(root){
+    if(!root)return;
+    if(root.nodeType===1)formatElement(root);
+    const nodes=root.querySelectorAll?root.querySelectorAll('td,th,span,small,div,p,label,strong,b'): [];
+    nodes.forEach(formatElement);
+  }
+
+  function run(){
+    scan(document.body);
+    document.querySelectorAll('input[type="date"],input[type="datetime-local"]').forEach(i=>{
+      i.removeAttribute('data-datetime-formatted');
+    });
+  }
+
+  const oldRender=window.render;
+  if(typeof oldRender==='function'){
+    window.render=function(){
+      oldRender();
+      setTimeout(run,20);
+      setTimeout(run,150);
+    };
+  }
+  const observer=new MutationObserver(mutations=>{
+    let changed=false;
+    mutations.forEach(m=>{if(m.addedNodes&&m.addedNodes.length)changed=true;});
+    if(changed)setTimeout(run,0);
+  });
+  setTimeout(()=>observer.observe(document.body,{childList:true,subtree:true}),300);
+  setTimeout(run,100);
+})();
