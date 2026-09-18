@@ -366,3 +366,31 @@ function clearFilters(){
 function tablePage(title,sub,heads,rows){
  return '<div class="page-title"><h1>'+esc(title)+'</h1><p>'+esc(sub)+'</p></div><div class="panel"><div class="filters"><input id="searchFilter" placeholder="Pesquisar lote, pedido, rota, descrição..." oninput="applyFilters()" autocomplete="off"><select id="periodFilter" onchange="applyFilters()"><option value="Hoje">Hoje</option><option value="7">Últimos 7 dias</option><option value="month">Este mês</option><option value="30">Últimos 30 dias</option><option value="all">Todo período</option></select><select id="statusFilter" onchange="applyFilters()"><option>Todos os status</option><option>Finalizada</option><option>Finalizado</option><option>Em andamento</option><option>OK</option><option>NÃO OK</option><option>Pendente</option></select><button class="btn" onclick="applyFilters()">Filtrar</button><button class="btn secondary" onclick="clearFilters()">Limpar</button><span id="filterCount" class="filter-count"></span></div><div class="table-wrap"><table class="table"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody id="dataRows">'+(rows||'<tr><td colspan="20" class="empty">Nenhum registro encontrado.</td></tr>')+'</tbody></table></div></div>';
 }
+
+
+
+/* ===== PERSISTÊNCIA FORTE FINAL V2 ===== */
+const UI_STATE_STORE_V2='siga30_ui_state_v2';
+function persistUiStateV2(){
+ try{
+  const main=document.querySelector('#main')||document.body;
+  const fields=[...main.querySelectorAll('input,select,textarea')].map((el,i)=>({id:el.id||'',name:el.name||'',value:el.value,checked:el.checked,selectedIndex:el.selectedIndex,index:i}));
+  const filter={q:document.querySelector('#searchFilter')?.value||'',period:document.querySelector('#periodFilter')?.value||'',status:document.querySelector('#statusFilter')?.value||''};
+  localStorage.setItem(UI_STATE_STORE_V2,JSON.stringify({page:state.page,fields,filter,scroll:document.querySelector('.area')?.scrollTop||window.scrollY||0,at:Date.now()}));
+ }catch(e){}
+}
+function restoreUiStateV2(){
+ try{
+  const x=JSON.parse(localStorage.getItem(UI_STATE_STORE_V2)||'null');if(!x)return;
+  if(x.page&&state.user&&securePermission(x.page))state.page=x.page;
+  render();
+  const main=document.querySelector('#main')||document.body,all=[...main.querySelectorAll('input,select,textarea')];
+  (x.fields||[]).forEach((f,i)=>{let el=f.id?main.querySelector('#'+CSS.escape(f.id)):null;if(!el&&f.name)el=main.querySelector('[name="'+CSS.escape(f.name)+'"]');if(!el)el=all[f.index??i];if(!el)return;if(el.type==='checkbox'||el.type==='radio')el.checked=!!f.checked;else el.value=f.value;if(el.tagName==='SELECT'&&Number.isInteger(f.selectedIndex)&&f.selectedIndex<el.options.length)el.selectedIndex=f.selectedIndex;});
+  const q=document.querySelector('#searchFilter'),p=document.querySelector('#periodFilter'),s=document.querySelector('#statusFilter');if(q)q.value=x.filter?.q||'';if(p&&x.filter?.period)p.value=x.filter.period;if(s&&x.filter?.status)s.value=x.filter.status;
+  applyFilters();
+  requestAnimationFrame(()=>{const area=document.querySelector('.area');if(area&&x.scroll!=null)area.scrollTop=x.scroll;else window.scrollTo(0,x.scroll||0);});
+ }catch(e){}
+}
+window.addEventListener('beforeunload',persistUiStateV2);
+document.addEventListener('input',persistUiStateV2,true);
+document.addEventListener('change',persistUiStateV2,true);
