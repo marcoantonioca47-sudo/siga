@@ -799,3 +799,58 @@ function selectedReportMonth(){
   const saved=localStorage.getItem('siga30_report_month_v1');
   return el?.value||saved||'all';
 }
+
+
+/* ===== FILTRO MES + ANO — RELATORIOS E DESEMPENHO ===== */
+function reportSelectedYear(){
+  const el=document.querySelector('#reportYearFilter');
+  const saved=localStorage.getItem('siga30_report_year_v1');
+  return Number(el?.value||saved||new Date().getFullYear());
+}
+function reportYearOptions(selected){
+  const current=new Date().getFullYear(),saved=Number(selected||current);
+  let out='';
+  for(let y=current;y>=current-5;y--)out+='<option value="'+y+'" '+(y===saved?'selected':'')+'>'+y+'</option>';
+  return out;
+}
+function reportFilterOptions(){
+  const m=selectedReportMonth();
+  return '<div class="report-filter-head"><div><span class="report-filter-kicker">PERÍODO DE ANÁLISE</span><strong>Filtre os indicadores por competência</strong><small>Escolha o mês e o ano para atualizar todos os números abaixo.</small></div><div class="report-filter-fields"><label>Mês<select id="reportMonthFilter" onchange="renderMonthReport()">'+reportMonthOptions(m)+'</select></label><label>Ano<select id="reportYearFilter" onchange="renderMonthReport()">'+reportYearOptions(reportSelectedYear())+'</select></label></div></div>';
+}
+function selectedReportMonth(){
+  return document.querySelector('#reportMonthFilter')?.value||localStorage.getItem('siga30_report_month_v1')||'all';
+}
+function filteredReportData(){
+  const m=selectedReportMonth(),y=reportSelectedYear();
+  const match=o=>{
+    if(m==='all')return true;
+    const d=reportRecordDate(o);
+    return !!d&&d.getFullYear()===y&&d.getMonth()===Number(m);
+  };
+  return {s:userSeps().filter(match),c:userCars().filter(match),f:userConfs().filter(match),a:userActs().filter(match)};
+}
+function renderMonthReport(){
+  const m=document.querySelector('#reportMonthFilter')?.value||'all';
+  const y=document.querySelector('#reportYearFilter')?.value||new Date().getFullYear();
+  localStorage.setItem('siga30_report_month_v1',m);
+  localStorage.setItem('siga30_report_year_v1',y);
+  render();
+}
+function desempenhoPage(){
+  const d=filteredReportData(),s=d.s,c=d.c,f=d.f,a=d.a;
+  const t={s:s.length,c:c.length,f:f.length,a:a.length,fok:f.filter(x=>norm(x.resultado)==='ok').length,fbad:f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,cok:c.filter(x=>norm(x.resultado)==='ok').length,cbad:c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length};
+  const max=Math.max(t.s,t.c,t.f,t.a,1);
+  return '<div class="page-title"><div class="panel-title"><div><span class="report-eyebrow">ANÁLISE DE PERFORMANCE</span><h1>Meu Desempenho</h1><p>Acompanhe seus resultados por mês e ano.</p></div></div></div>'+
+  '<div class="report-filter-card">'+reportFilterOptions()+'</div>'+
+  '<div class="cards"><div class="stat blue"><div class="stat-top">SEPARAÇÕES</div><strong>'+t.s+'</strong><small>Registros no período</small></div><div class="stat green"><div class="stat-top">CARREGAMENTOS</div><strong>'+t.c+'</strong><small>Registros no período</small></div><div class="stat purple"><div class="stat-top">CONFERÊNCIAS</div><strong>'+t.f+'</strong><small>Registros no período</small></div><div class="stat dark"><div class="stat-top">ATIVIDADES</div><strong>'+t.a+'</strong><small>Registros no período</small></div></div>'+
+  '<div class="grid2"><div class="panel report-chart-panel"><h3>Desempenho operacional</h3><div class="sub">Volume de atividades no período selecionado</div>'+bar('Separações',t.s,max,'')+bar('Carregamentos',t.c,max,'green')+bar('Conferências',t.f,max,'purple')+bar('Atividades',t.a,max,'dark')+'</div><div class="panel report-chart-panel"><h3>Resultados das conferências</h3><div class="sub">Distribuição dos resultados no período</div>'+bar('Conferências OK',t.fok,Math.max(t.f,1),'green')+bar('Conferências NÃO OK',t.fbad,Math.max(t.f,1),'red')+bar('Carregamentos OK',t.cok,Math.max(t.c,1),'green')+bar('Carregamentos NÃO OK',t.cbad,Math.max(t.c,1),'red')+'</div></div>';
+}
+function relatoriosPage(){
+  const d=filteredReportData(),s=d.s,c=d.c,f=d.f,a=d.a;
+  const okF=f.filter(x=>norm(x.resultado)==='ok').length,badF=f.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,okC=c.filter(x=>norm(x.resultado)==='ok').length,badC=c.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length,total=s.length+c.length+f.length,results=okF+badF+okC+badC,rate=results?Math.round((okF+okC)/results*100):0;
+  return '<div class="page-title"><div class="panel-title"><div><span class="report-eyebrow">GESTÃO E INDICADORES</span><h1>Relatórios Operacionais</h1><p>Visão consolidada das operações do período selecionado.</p></div><div class="hero-actions"><button class="btn secondary" onclick="exportReport()">⇩ Exportar relatório</button><button class="btn" onclick="window.print()">🖨 Imprimir</button></div></div></div>'+
+  '<div class="report-filter-card">'+reportFilterOptions()+'</div>'+
+  '<div class="report-kpis"><div class="perf-kpi"><span>Separações</span><strong>'+s.length+'</strong><small>No período</small></div><div class="perf-kpi"><span>Carregamentos</span><strong>'+c.length+'</strong><small>No período</small></div><div class="perf-kpi"><span>Conferências</span><strong>'+f.length+'</strong><small>No período</small></div><div class="perf-kpi"><span>Conformidade registrada</span><strong>'+rate+'%</strong><small>'+results+' resultados analisados</small></div></div>'+
+  '<div class="grid2"><div class="panel report-chart-panel"><h3>📦 Produção operacional</h3><div class="sub">Quantidade de registros no período</div>'+bar('Separações',s.length,Math.max(total,1),'')+bar('Carregamentos',c.length,Math.max(total,1),'green')+bar('Conferências',f.length,Math.max(total,1),'purple')+bar('Atividades',a.length,Math.max(a.length,s.length,c.length,f.length,1),'dark')+'</div><div class="panel report-chart-panel"><h3>✓ Qualidade e ocorrências</h3><div class="sub">Resultados registrados no período</div>'+bar('Conferências OK',okF,Math.max(f.length,1),'green')+bar('Conferências NÃO OK',badF,Math.max(f.length,1),'red')+bar('Carregamentos OK',okC,Math.max(c.length,1),'green')+bar('Carregamentos NÃO OK',badC,Math.max(c.length,1),'red')+'</div></div>'+
+  '<div class="panel report-table"><div class="panel-title"><div><h3>Resumo por operação</h3><div class="sub">Valores calculados para o período selecionado.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Operação</th><th>Total</th><th>OK</th><th>NÃO OK</th><th>Sem resultado</th></tr></thead><tbody><tr><td>Separações</td><td>'+s.length+'</td><td>'+s.filter(x=>norm(x.resultado)==='ok').length+'</td><td>'+s.filter(x=>/não ok|nao ok/i.test(x.resultado||'')).length+'</td><td>'+s.filter(x=>!x.resultado).length+'</td></tr><tr><td>Carregamentos</td><td>'+c.length+'</td><td>'+okC+'</td><td>'+badC+'</td><td>'+c.filter(x=>!x.resultado).length+'</td></tr><tr><td>Conferências</td><td>'+f.length+'</td><td>'+okF+'</td><td>'+badF+'</td><td>'+f.filter(x=>!x.resultado).length+'</td></tr><tr><td>Atividades</td><td>'+a.length+'</td><td>—</td><td>—</td><td>'+a.filter(x=>!x.status).length+'</td></tr></tbody></table></div></div>';
+}
