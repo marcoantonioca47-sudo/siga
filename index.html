@@ -22,16 +22,17 @@
     <footer><span>⌖ CDD</span><b>Desenvolvido por MARCO</b></footer>
   </div>
 </div>
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="menuOverlay" class="menu-overlay" aria-hidden="true"></div>
 <div id="app" class="hide">
-  <aside>
+  <aside id="sideMenu">
     <div class="brand"><div class="du">DULEO</div><div>SIGA <span>3.0</span><small>PORTAL OPERACIONAL</small></div></div>
     <div class="me"><i id="sideInitials">MA</i><div><b id="sideName">Marco</b><small id="sideRole">Autor / Administrador</small></div></div>
     <nav id="nav"></nav>
     <div class="asidefoot">⌖ CDD<br><b>Desenvolvido por MARCO</b></div>
   </aside>
   <section class="area">
-    <header><button class="hamb" onclick="document.querySelector('aside').classList.toggle('open')" aria-label="Abrir menu">☰</button><div class="header-title"><b>SIGA 3.0</b><small>PORTAL DO OPERADOR / CONFERENTE</small></div><div class="header-meta"><div class="header-info"><span>FILIAL</span><b id="headerBranch">CDD</b></div><div class="header-info"><span>DATA / HORA</span><b id="headerClock">--/--/---- --:--</b></div></div><div class="who"><div><b id="headerName">Marco</b><small id="headerRole">Autor / Administrador</small></div><span id="headerWho">CDD</span><i id="headerInitials">MA</i></div></header>
+    <header><button class="hamb" onclick="document.querySelector('aside').classList.toggle('open');document.querySelector('#menuOverlay').classList.toggle('show')" aria-label="Abrir menu" aria-controls="sideMenu">☰</button><div class="header-title"><b>SIGA 3.0</b><small>PORTAL DO OPERADOR / CONFERENTE</small></div><div class="header-meta"><div class="header-info"><span>FILIAL</span><b id="headerBranch">CDD</b></div><div class="header-info"><span>DATA / HORA</span><b id="headerClock">--/--/---- --:--</b></div></div><div class="who"><div><b id="headerName">Marco</b><small id="headerRole">Autor / Administrador</small></div><span id="headerWho">CDD</span><i id="headerInitials">MA</i></div></header>
     <main id="main"></main>
     <div class="bottom">SIGA 3.0 • Sistema Integrado de Gestão de Armazém <b>Desenvolvido por MARCO</b></div>
   </section>
