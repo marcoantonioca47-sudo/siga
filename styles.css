@@ -63,3 +63,7 @@ main{padding:28px;max-width:1480px;margin:auto;min-height:calc(100vh - 112px)}.b
 .detail-modal-box{position:relative;width:min(560px,94vw);padding:22px;border-radius:18px;border:1px solid rgba(255,255,255,.18);background:rgba(5,28,46,.94);box-shadow:0 30px 90px rgba(0,0,0,.5);color:#fff}
 .detail-modal-box h2{margin:5px 0 14px;font-size:20px}.modal-close{position:absolute;right:12px;top:10px;width:30px;height:30px;border-radius:9px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:18px}.detail-modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.detail-modal-grid>div,.original-text{padding:11px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:rgba(255,255,255,.05)}.detail-modal-grid small,.original-text small{display:block;color:#91a9b8;font-size:8px}.detail-modal-grid b{display:block;margin-top:4px;font-size:10px}.original-text{margin-top:9px}.original-text p{margin:7px 0 0;color:#dce7ed;font-size:10px;line-height:1.6;white-space:pre-wrap}
 @media(max-width:560px){.detail-modal{padding:10px}.detail-modal-box{padding:18px}.detail-modal-grid{grid-template-columns:1fr}.nav-item{min-height:47px}.nav-icon{width:33px;height:33px}.table td,.table th{padding:9px}.bottom{font-size:8px}}
+
+/* ===== ADVANCED FILTER UX ===== */
+.filter-count{margin-left:auto;align-self:center;color:#9fc0d2;font-size:8px;font-weight:800;white-space:nowrap}
+@media(max-width:560px){.filter-count{width:100%;margin-left:0}.filters{gap:6px}.filters input,.filters select,.filters .btn{flex:1;min-width:0}}
