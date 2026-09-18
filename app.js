@@ -218,3 +218,18 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 })();
+
+/* SIGA 3.0 - receptor de dados externo */
+(function(){
+  'use strict';
+  function refreshFromBridge(){
+    try{
+      if(typeof loadData==='function') portalData=loadData();
+      if(typeof render==='function' && state.user) render();
+    }catch(e){ console.error('SIGA data refresh:',e); }
+  }
+  window.addEventListener('siga:data-updated', refreshFromBridge);
+  window.addEventListener('storage', function(e){
+    if(e.key==='siga30_portal_data_v3') refreshFromBridge();
+  });
+})();
