@@ -940,3 +940,37 @@ function relatoriosPage(){
   }catch(e){return false;}
  };
 })();
+
+/* ===== REGISTRO OBRIGATÓRIO DE INÍCIO E FIM ===== */
+(function(){
+ const pad=n=>String(n).padStart(2,'0');
+ const now=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());};
+ const required=(form,selector,label)=>{
+  const el=form?.querySelector(selector); if(!el)return;
+  el.required=true;
+  if(!el.dataset.requiredDateTime){
+   el.dataset.requiredDateTime='1';
+   el.addEventListener('change',()=>{if(!el.value)el.setCustomValidity('Informe '+label+'.');else el.setCustomValidity('');});
+  }
+ };
+ function applyRequired(){
+  document.querySelectorAll('form').forEach(f=>{
+   const text=(f.innerText||'').toLowerCase();
+   if(/separa|carreg|atividade|confer|romaneio|transbord|operação/.test(text)){
+    required(f,'[name*="inicio" i],#inicio,#dataInicio,#data_inicio','data e hora de início');
+    required(f,'[name*="fim" i],#fim,#dataFim,#data_fim','data e hora de fim');
+   }
+  });
+ }
+ const oldRender=window.render;
+ if(typeof oldRender==='function'){
+  window.render=function(){oldRender();setTimeout(applyRequired,0);};
+ }
+ window.requiredOperationDateTime=function(record){
+  if(!record)return false;
+  if(!record.inicio)record.inicio=now();
+  if(!record.fim)record.fim=now();
+  return true;
+ };
+ setTimeout(applyRequired,0);
+})();
