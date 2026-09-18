@@ -51,10 +51,33 @@ function norm(v){return String(v==null?'':v).trim().toLowerCase();}
 function isAdmin(){return !!state.user&&/autor|administrador/i.test(state.user.role||'');}
 function sameUser(o){
  if(isAdmin())return true;
- const ids=[o.usuario_id,o.user_id,o.usuario,o.operador_id,o.operador,o.conferente_id,o.conferente].filter(Boolean).map(norm);
+ const ids=[o.usuario_id,o.user_id,o.usuario,o.operador_id,o.operador,o.conferente_id,o.conferente,o.usuario_login,o.login].filter(Boolean).map(norm);
  const u=[state.user.id,state.user.usuario,state.user.username,state.user.name].filter(Boolean).map(norm);
  return ids.length>0&&ids.some(function(x){return u.indexOf(x)>=0;});
 }
+function normalizeIncomingRecord(type,o){
+ const r=Object.assign({},o||{});
+ if(!r.usuario_id)r.usuario_id=r.user_id||r.usuario||r.usuario_login||r.login||r.operador_id||r.conferente_id||'';
+ if(!r.filial_id)r.filial_id=r.filial||r.cd||r.unidade||'CDD';
+ r._siga_tipo=type;
+ return r;
+}
+function receivePortalData(payload){
+ if(!payload||typeof payload!=='object')return false;
+ const next=clone(portalData);
+ ['separacoes','carregamentos','atividades','conferencias'].forEach(function(type){
+  if(Array.isArray(payload[type]))next[type]=payload[type].map(function(r){return normalizeIncomingRecord(type,r);});
+ });
+ portalData=next;saveData();render();return true;
+}
+window.SIGAUserData={
+ version:'1.0',
+ getCurrentUser:function(){return state.user?clone(state.user):null;},
+ filter:function(type){return rows(type);},
+ receive:function(payload){return receivePortalData(payload);},
+ replace:function(payload){return receivePortalData(payload);},
+ getAll:function(){return clone(portalData);}
+};
 function sameBranch(o){return isAdmin()||String(o.filial_id||o.filial||o.cd||'CDD')===String(state.user.cd||'CDD');}
 function rows(key){return (portalData[key]||[]).filter(function(o){return sameUser(o)&&sameBranch(o);});}
 function resultClass(v){const x=norm(v);if(x==='ok'||x==='finalizada'||x==='finalizado')return'ok';if(x==='não ok'||x==='nao ok')return'bad';return'pending';}
