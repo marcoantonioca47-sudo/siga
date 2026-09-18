@@ -810,7 +810,7 @@ function reportSelectedYear(){
 function reportYearOptions(selected){
   const current=new Date().getFullYear(),saved=Number(selected||current);
   let out='';
-  for(let y=current;y>=current-10;y--)out+='<option value="'+y+'" '+(y===saved?'selected':'')+'>'+y+'</option>';
+  const min=Math.min(current-10,saved),max=Math.max(current,saved); for(let y=max;y>=min;y--)out+='<option value="'+y+'" '+(y===saved?'selected':'')+'>'+y+'</option>';
   return out;
 }
 function reportFilterOptions(){
