@@ -133,7 +133,7 @@ function logout(){state.user=null;state.page='home';try{localStorage.removeItem(
 window.logout=logout;
 
 function nav(){
- const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['perfil','●','Perfil / Acesso',true],['logout','↪','Sair',true]];
+ const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['usuarios','♙','Cadastro de Usuários',isAdmin()],['perfil','●','Perfil / Acesso',true],['logout','↪','Sair',true]];
  const el=document.querySelector('#nav');if(!el)return;
  el.innerHTML=items.filter(function(x){return x[3];}).map(function(x){return '<button class="nav-item '+(state.page===x[0]?'active':'')+'" data-page="'+x[0]+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>';}).join('');
  el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
@@ -186,7 +186,7 @@ function home(){
  '<div class="panel"><div class="panel-title"><div><h3>📊 Resumo operacional</h3><div class="sub">Indicadores da sua sessão</div></div></div><div class="bar-row"><label>Conformidade</label><div class="bar"><div class="fill green" style="width:'+rate+'%"></div></div><strong>'+rate+'%</strong></div><div class="bar-row"><label>Operações OK</label><div class="bar"><div class="fill" style="width:'+(total?Math.round(ok/total*100):0)+'%"></div></div><strong>'+ok+'</strong></div><div class="bar-row"><label>Ocorrências</label><div class="bar"><div class="fill red" style="width:'+(total?Math.min(100,Math.round(bad/Math.max(total,1)*100)):0)+'%"></div></div><strong>'+bad+'</strong></div><div class="performance-note"><span>Atualização:</span><b>agora</b></div></div></div>';
 }
 function refreshDashboard(){render();toast('Painel atualizado.');}
-function goPage(p){if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='admin'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();}
+function goPage(p){if(p==='usuarios'&&!isAdmin()){toast('Acesso não permitido.');return;}if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='admin'&&p!=='usuarios'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();}
 function closeMobileMenu(){const a=document.querySelector('aside');if(a)a.classList.remove('open');const o=document.querySelector('#menuOverlay');if(o)o.classList.remove('show');}
 window.refreshDashboard=refreshDashboard;window.goPage=goPage;window.closeMobileMenu=closeMobileMenu;
 
@@ -228,7 +228,7 @@ function admin(){
  const summary=reports();
  const occ=occurrences();
  const det=details();
- return '<div class="page-title"><div><h1>Administrador</h1><p>Gestão completa do sistema: usuários, detalhes, ocorrências e relatórios.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas • acesso administrativo completo</div></div></div><div class="user-list">'+list.map(function(u){const pc=PERMISSION_DEFS.length+1;return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões disponíveis</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(\''+esc(u.id)+'\')">Editar</button><button class="btn danger" onclick="deleteUser(\''+esc(u.id)+'\')">Excluir</button></div></div>';}).join('')+'</div></div><div class="admin-section"><div class="admin-subtitle">TODOS OS SEPARADORES</div><div class="panel"><div class="user-list">'+separadores.map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • Filial '+esc(u.cd||'CDD')+'</small><small>Usuário habilitado para separação</small></div><span class="badge ok">SEPARADOR</span></div>';}).join('')+'</div></div><div class="admin-subtitle">DETALHES</div>'+det+'<div class="admin-subtitle">OCORRÊNCIAS</div>'+occ+'<div class="admin-subtitle">RELATÓRIOS</div>'+summary+'</div>';
+ return '<div class="page-title"><div><h1>Cadastro de Usuários</h1><p>Cadastre, edite e controle os acessos dos usuários do SIGA 3.0.</p></div><div class="page-actions"><button class="btn" onclick="newUserForm()">＋ Novo usuário</button></div></div><div class="panel"><div class="panel-title"><div><h3>Usuários cadastrados</h3><div class="sub">'+list.length+' contas • acesso administrativo completo</div></div></div><div class="user-list">'+list.map(function(u){const pc=PERMISSION_DEFS.length+1;return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • '+esc(u.cd||'CDD')+'</small><small>'+pc+' permissões disponíveis</small></div><div style="display:flex;gap:6px"><button class="btn secondary" onclick="editUser(\''+esc(u.id)+'\')">Editar</button><button class="btn danger" onclick="deleteUser(\''+esc(u.id)+'\')">Excluir</button></div></div>';}).join('')+'</div></div><div class="admin-section"><div class="admin-subtitle">TODOS OS SEPARADORES</div><div class="panel"><div class="user-list">'+separadores.map(function(u){return '<div class="user-row"><div class="avatar">'+esc((u.name||'US').slice(0,2).toUpperCase())+'</div><div><b>'+esc(u.name||u.id)+'</b><small>'+esc(u.id)+' • '+esc(u.role||'Operador')+' • Filial '+esc(u.cd||'CDD')+'</small><small>Usuário habilitado para separação</small></div><span class="badge ok">SEPARADOR</span></div>';}).join('')+'</div></div><div class="admin-subtitle">DETALHES</div>'+det+'<div class="admin-subtitle">OCORRÊNCIAS</div>'+occ+'<div class="admin-subtitle">RELATÓRIOS</div>'+summary+'</div>';
 }
 window.newUserForm=function(user){
  if(!isAdmin())return;
@@ -247,7 +247,7 @@ window.saveUserAccount=function(){
  const permissions={};document.querySelectorAll('input[name="perm"]:checked').forEach(function(e){permissions[e.value]=true;});permissions.admin=!!((document.querySelector('#permAdmin')||{}).checked);
  const list=accountList(),idx=list.findIndex(function(x){return norm(x.id)===norm(id);}),obj={id:id.trim(),name:name.trim(),password:pass,role:role,cd:cd.trim()||'CDD',permissions:permissions};
  if(idx>=0)list[idx]=obj;else{if(list.some(function(x){return norm(x.id)===norm(id);}))return toast('Usuário já cadastrado.');list.push(obj);}
- if(saveAccounts(list)){state.page='admin';render();toast('Usuário salvo com sucesso.');}else toast('Falha ao salvar.');
+ if(saveAccounts(list)){state.page='usuarios';render();toast('Usuário salvo com sucesso.');}else toast('Falha ao salvar.');
 };
 window.deleteUser=function(id){
  if(!isAdmin())return;
@@ -261,7 +261,7 @@ function render(){
  document.querySelector('#login').classList.add('hide');
  document.querySelector('#app').classList.remove('hide');
  updateUI();nav();
- const pages={home:home,separacoes:sepPage,carregamentos:carPage,atividades:actPage,conferencias:confPage,perfil:profile};
+ const pages={home:home,separacoes:sepPage,carregamentos:carPage,atividades:actPage,conferencias:confPage,perfil:profile,usuarios:admin};
  const main=document.querySelector('#main');if(main)main.innerHTML=(pages[state.page]||home)();
 }
 window.render=render;
