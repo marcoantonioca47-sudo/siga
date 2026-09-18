@@ -111,10 +111,10 @@ window.logout=logout;
 
 function nav(){
  const adminAccess=isAdmin();
- const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['perfil','●','Perfil / Acesso',true],['admin','⚙','Administrador',adminAccess],['logout','↪','Sair',true]];
+ const items=[['home','⌂','Início',true],['separacoes','▣','Minhas Separações',state.permissions.separacoes],['carregamentos','▰','Meus Carregamentos',state.permissions.carregamentos],['conferencias','✓','Minhas Conferências',state.permissions.conferencias],['atividades','◷','Minhas Atividades',state.permissions.atividades],['desempenho','▥','Meu Desempenho',state.permissions.desempenho],['perfil','●','Perfil / Acesso',true],['usuarios','♙','Gerenciar Usuários',adminAccess],['logout','↪','Sair',true]];
  const el=document.querySelector('#nav');if(!el)return;
  el.innerHTML=items.filter(function(x){return x[3];}).map(function(x){return '<button class="nav-item '+(state.page===x[0]?'active':'')+'" data-page="'+x[0]+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>';}).join('');
- el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='admin'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
+ el.querySelectorAll('.nav-item').forEach(function(b){b.onclick=function(){const p=b.dataset.page;if(p==='logout')return logout();if(!state.permissions[p]&&p!=='home'&&p!=='perfil'&&p!=='usuarios'){toast('Acesso não permitido.');return;}state.page=p;closeMobileMenu();render();};});
 }
 
 function updateUI(){
@@ -239,7 +239,7 @@ function render(){
  document.querySelector('#login').classList.add('hide');
  document.querySelector('#app').classList.remove('hide');
  updateUI();nav();
- const pages={home:home,separacoes:sepPage,carregamentos:carPage,atividades:actPage,conferencias:confPage,desempenho:perf,perfil:profile,admin:admin,relatorios:reports,ocorrencias:occurrences,detalhes:details};
+ const pages={home:home,separacoes:sepPage,carregamentos:carPage,atividades:actPage,conferencias:confPage,desempenho:perf,perfil:profile,usuarios:admin,relatorios:reports};
  const main=document.querySelector('#main');if(main)main.innerHTML=(pages[state.page]||home)();
 }
 window.render=render;
